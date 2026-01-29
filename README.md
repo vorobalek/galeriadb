@@ -13,10 +13,10 @@ Built and published via [GitHub Actions](.github/workflows/docker-publish.yml) o
 
 ## Quick start (example)
 
-From the `examples/` directory:
+**Docker Compose** — from the `examples/docker-compose/` directory:
 
 ```bash
-cd examples
+cd examples/docker-compose
 docker compose up -d
 ```
 
@@ -25,7 +25,7 @@ Connect to the cluster via HAProxy on port **3306**:
 - **Host:** `localhost`
 - **Port:** `3306`
 - **User:** `root`
-- **Password:** `secret` (value of `GALERIA_ROOT_PASSWORD` in `examples/docker-compose.yml`)
+- **Password:** `secret` (value of `GALERIA_ROOT_PASSWORD` in the example)
 
 ```bash
 mariadb -h 127.0.0.1 -P 3306 -u root -psecret
@@ -60,7 +60,8 @@ docker build -t galeriadb/11.8:latest -f docker/Dockerfile docker/
 ## Repository structure
 
 - `docker/` — Dockerfile and build context (entrypoint, Galera config, health check).
-- `examples/` — sample `docker-compose` stack (image `galeriadb/11.8:latest`) with three Galera nodes and HAProxy.
+- `examples/docker-compose/` — sample Compose stack (three Galera nodes + HAProxy) for local testing.
+- `examples/docker-swarm/` — sample Swarm stack (global Galera + HAProxy + optional mysqld-exporter); see `examples/docker-swarm/README.md`.
 
 ## License
 
