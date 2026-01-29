@@ -168,7 +168,8 @@ if ! wait_for_mysql; then
     exit 1
 fi
 
-# Ensure root can connect from any host (for HAProxy and clients)
+# Ensure root can connect from any host (for HAProxy and clients).
+# With skip_name_resolve=ON in galera.cnf, all TCP connections match root@'%' by IP.
 mariadb -u root -p"$MYSQL_PWD" -h 127.0.0.1 -e "
     CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${GALERIA_ROOT_PASSWORD:-mariadb}';
     GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;

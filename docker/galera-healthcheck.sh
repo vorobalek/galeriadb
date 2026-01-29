@@ -18,9 +18,8 @@ while read -r -t 1 line 2>/dev/null; do
     [ -z "$line" ] && break
 done
 
-# Connect via overlay IP (from entrypoint's IP_ADDRESS) so server sees non-localhost and matches root@'%'
-MYSQL_HOST="${IP_ADDRESS:-127.0.0.1}"
-result=$(mariadb -u "$MYSQL_USER" -p"$MYSQL_PWD" -h "$MYSQL_HOST" -e "SHOW STATUS LIKE 'wsrep_ready'; SHOW STATUS LIKE 'wsrep_local_state_comment';" 2>/dev/null)
+# With skip_name_resolve=ON in galera.cnf, server matches by IP only → root@'%' every time
+result=$(mariadb -u "$MYSQL_USER" -p"$MYSQL_PWD" -h 127.0.0.1 -e "SHOW STATUS LIKE 'wsrep_ready'; SHOW STATUS LIKE 'wsrep_local_state_comment';" 2>/dev/null)
 ready=$(echo "$result" | grep -E "wsrep_ready\s+ON" || true)
 synced=$(echo "$result" | grep -E "wsrep_local_state_comment\s+Synced" || true)
 
