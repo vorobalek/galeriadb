@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 # Bootstrap logic: any node can start first. One node must run new-cluster (bootstrap),
 # others join. We pick bootstrap candidate by lexicographically smallest hostname.
@@ -121,7 +121,7 @@ cat "$GALERA_CNF"
 echo "===================================="
 
 # Start health check listener in background (for HAProxy)
-socat TCP-LISTEN:9200,reuseaddr,fork SYSTEM:"/usr/local/bin/galera-healthcheck.sh" &
+socat -T 2 TCP-LISTEN:9200,reuseaddr,fork SYSTEM:"/usr/local/bin/galera-healthcheck.sh" 2>/dev/null &
 SOCAT_PID=$!
 
 # Initialize data dir if empty (first run)
