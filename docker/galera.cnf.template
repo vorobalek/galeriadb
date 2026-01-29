@@ -1,0 +1,17 @@
+# MariaDB + Galera (variables substituted at runtime)
+
+[mysqld]
+bind-address=0.0.0.0
+binlog_format=ROW
+default_storage_engine=InnoDB
+innodb_autoinc_lock_mode=2
+
+wsrep_on=ON
+wsrep_provider=/usr/lib/galera/libgalera_smm.so
+wsrep_cluster_name="{{WSREP_CLUSTER_NAME}}"
+wsrep_cluster_address="{{CLUSTER_ADDRESS}}"
+wsrep_node_name="{{WSREP_NODE_NAME}}"
+wsrep_node_address="{{WSREP_NODE_ADDRESS}}"
+wsrep_sst_method=rsync
+wsrep_sst_receive_address="{{WSREP_NODE_ADDRESS}}"
+wsrep_provider_options="ist.recv_addr={{WSREP_NODE_ADDRESS}}; gcache.size=256M"

@@ -1,0 +1,17 @@
+# Git and CI
+.git
+.github
+.gitignore
+
+# Docs and examples (not needed in image build context)
+README.md
+examples/
+
+# IDE / OS
+.idea
+.vscode
+.DS_Store
+
+# Local
+.env
+*.log

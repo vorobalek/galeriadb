@@ -1,0 +1,70 @@
+galeriadb
+=========
+
+This repository's code (Dockerfile, entrypoint and healthcheck scripts, config
+templates, examples, and documentation) is licensed under the MIT License.
+See the LICENSE file in this repository.
+
+The Docker image built from this repository includes third-party software
+subject to their own licenses. When you distribute or use the built image,
+you must comply with those licenses. Below is a list of the main components
+and where to find their sources and license terms.
+
+-------------------------------------------------------------------------------
+Third-party components used in the Docker image (docker/ build)
+-------------------------------------------------------------------------------
+
+1. Ubuntu (base image)
+   - Source: https://ubuntu.com/
+   - License: Various (free software; see component packages).
+   - The image is based on ubuntu:24.04 from Docker Hub.
+
+2. MariaDB Server and MariaDB Client
+   - Source: https://github.com/MariaDB/server
+   - License: GPL v2 (GNU General Public License version 2)
+   - https://mariadb.com/kb/en/mariadb-licenses/
+
+3. Galera replication library (galera-4)
+   - Source: https://github.com/codership/galera
+   - License: GPL v2 (GNU General Public License version 2)
+
+4. socat
+   - Source: http://www.dest-unreach.org/socat/
+   - License: GPL v2 (GNU General Public License version 2)
+
+Other packages installed via apt (ca-certificates, curl, rsync, gettext-base,
+etc.) are part of the Ubuntu/Debian ecosystem; their licenses are documented
+in the respective packages and in the base image.
+
+-------------------------------------------------------------------------------
+Third-party components referenced in examples only (not in our image)
+-------------------------------------------------------------------------------
+
+5. HAProxy (example docker-compose uses haproxy:2.9-alpine)
+   - Source: https://github.com/haproxy/haproxy
+   - License: GPL v2
+   - Used only in the example stack; not included in the galeriadb image.
+
+-------------------------------------------------------------------------------
+Third-party components used in CI (GitHub Actions)
+-------------------------------------------------------------------------------
+
+6. actions/checkout
+   - Source: https://github.com/actions/checkout
+   - License: MIT
+
+7. docker/setup-buildx-action, docker/login-action, docker/build-push-action
+   - Source: https://github.com/docker/setup-buildx-action and related repos
+   - License: Apache-2.0 or MIT (see each action's repository)
+
+-------------------------------------------------------------------------------
+GPL note
+-------------------------------------------------------------------------------
+
+MariaDB, Galera, socat, and HAProxy are licensed under the GNU General Public
+License (GPL) v2. The source code for these programs is available from the
+upstream links above. This repository does not modify their source code; it
+only installs them via the system package manager (apt) when building the
+Docker image. Distribution of the built image may be considered distribution
+of GPL-licensed software; ensure you comply with GPL v2 (e.g. provide or
+offer source, include license notices) when redistributing.
