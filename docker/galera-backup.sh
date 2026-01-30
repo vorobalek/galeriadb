@@ -41,20 +41,17 @@ mariabackup --backup \
 # 3) Compress
 tar -C "$TMP" -czf "$OUT" .
 
-# 4) Upload to S3
-S3_PATH="${S3_BASE}/${HOST}/${TS}.tar.gz"
+# 4) Optional: delete backups older than GALERIA_BACKUP_RETENTION_DAYS (before uploading new one)
+#    Age is determined by S3 object LastModified (from aws s3 ls), not by filename.
 AWS_OPTS=()
 [ -n "${AWS_ENDPOINT_URL:-}" ] && AWS_OPTS+=(--endpoint-url "$AWS_ENDPOINT_URL")
-aws s3 cp "$OUT" "$S3_PATH" "${AWS_OPTS[@]}"
-
-# 5) Optional: delete backups older than GALERIA_BACKUP_RETENTION_DAYS
 if [ -n "${GALERIA_BACKUP_RETENTION_DAYS:-}" ] && [ "$GALERIA_BACKUP_RETENTION_DAYS" -gt 0 ] 2>/dev/null; then
-  CUTOFF=$(date -u -d "now - ${GALERIA_BACKUP_RETENTION_DAYS} days" +%Y-%m-%d 2>/dev/null || true)
+  CUTOFF="${GALERIA_BACKUP_RETENTION_CUTOFF_OVERRIDE:-$(date -u -d "now - ${GALERIA_BACKUP_RETENTION_DAYS} days" +%Y-%m-%d 2>/dev/null)}"
   if [ -n "$CUTOFF" ]; then
-    aws s3 ls "${S3_BASE}/${HOST}/" "${AWS_OPTS[@]}" 2>/dev/null | while read -r _ _ _ key; do
+    aws s3 ls "${S3_BASE}/${HOST}/" "${AWS_OPTS[@]}" 2>/dev/null | while read -r obj_date _ _ key; do
       [ -z "$key" ] && continue
-      key_date="${key:0:10}"
-      if [[ "$key_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$key_date" < "$CUTOFF" ]]; then
+      # obj_date is LastModified date (YYYY-MM-DD) from S3
+      if [[ "$obj_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$obj_date" < "$CUTOFF" ]]; then
         if aws s3 rm "${S3_BASE}/${HOST}/${key}" "${AWS_OPTS[@]}" 2>/dev/null; then
           log "Deleted old backup: ${key}"
         fi
@@ -62,6 +59,10 @@ if [ -n "${GALERIA_BACKUP_RETENTION_DAYS:-}" ] && [ "$GALERIA_BACKUP_RETENTION_D
     done
   fi
 fi
+
+# 5) Upload to S3
+S3_PATH="${S3_BASE}/${HOST}/${TS}.tar.gz"
+aws s3 cp "$OUT" "$S3_PATH" "${AWS_OPTS[@]}"
 
 # 6) Cleanup
 rm -rf "$TMP" "$OUT"

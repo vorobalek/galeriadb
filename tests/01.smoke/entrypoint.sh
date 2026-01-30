@@ -33,12 +33,13 @@ source "${CASES_DIR}/00.common.sh"
 
 run_case() {
   local name="$1"
+  # shellcheck disable=SC1090
   source "${CASES_DIR}/${name}.sh"
 }
 
 if [ -n "$CASE_ARG" ]; then
   case "$CASE_ARG" in
-    01.all-required|02.missing-peers|03.missing-root-password|04.missing-bootstrap-candidate)
+    01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate)
       run_case "$CASE_ARG"
       ;;
     *)

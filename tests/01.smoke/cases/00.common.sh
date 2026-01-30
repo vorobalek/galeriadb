@@ -2,7 +2,7 @@
 # Common for smoke cases. Expects: IMAGE (set by entrypoint).
 # Optional env: GALERIA_ROOT_PASSWORD (used in 01.all-required; default secret for tests).
 
-PASS="${GALERIA_ROOT_PASSWORD:-secret}"
+export PASS="${GALERIA_ROOT_PASSWORD:-secret}"
 
 # Run image with given env; expect exit code 1 and stderr containing "Required environment variable VAR_NAME is not set".
 # Usage: expect_required_var_fail var_name [extra_docker_run_args...]

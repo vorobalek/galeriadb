@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# S3 backup test: MinIO + Galera, backup to S3. Runs cases from cases/ (01.backup-to-s3, 02.fail-without-s3-config).
+# S3 backup test: MinIO + Galera, backup to S3. Runs cases from cases/ (01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old).
 # Usage: ./tests/03.backup-s3/entrypoint.sh [IMAGE] [CASE]
-#   CASE: 01.backup-to-s3 | 02.fail-without-s3-config (default: run all in order)
+#   CASE: 01.backup-to-s3 | 02.fail-without-s3-config | 03.retention-deletes-old (default: run all in order)
 # IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
 
 set -euo pipefail
@@ -46,8 +46,12 @@ if [ -n "$CASE_ARG" ]; then
       # shellcheck disable=SC1091
       source "${CASES_DIR}/02.fail-without-s3-config.sh"
       ;;
+    03.retention-deletes-old)
+      # shellcheck disable=SC1091
+      source "${CASES_DIR}/03.retention-deletes-old.sh"
+      ;;
     *)
-      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config)"
+      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old)"
       exit 1
       ;;
   esac
@@ -56,6 +60,8 @@ else
   source "${CASES_DIR}/01.backup-to-s3.sh"
   # shellcheck disable=SC1091
   source "${CASES_DIR}/02.fail-without-s3-config.sh"
+  # shellcheck disable=SC1091
+  source "${CASES_DIR}/03.retention-deletes-old.sh"
 fi
 
 log "S3 backup test passed."

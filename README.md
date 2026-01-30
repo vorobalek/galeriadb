@@ -63,7 +63,7 @@ Hot backups run only on nodes in **Synced** state. To enable scheduled backups, 
 | `GALERIA_BACKUP_S3_BUCKET` | S3 bucket name; path under bucket uses `GALERIA_BACKUP_S3_PATH`. Alternative to full URI. | `my-bucket` |
 | `GALERIA_BACKUP_S3_PATH` | Path under bucket when using `GALERIA_BACKUP_S3_BUCKET`. Default `mariadb`. | `backups/mariadb` |
 | `GALERIA_BACKUP_TMPDIR` | Directory for temporary backup files. Default `/tmp`. | `/var/lib/mysql/tmp` |
-| `GALERIA_BACKUP_RETENTION_DAYS` | Delete backups older than this many days (optional). | `7` |
+| `GALERIA_BACKUP_RETENTION_DAYS` | Delete backups older than this many days (optional). Age is determined by S3 object LastModified, not by filename. | `7` |
 | `GALERIA_CRONTAB` | Extra cron lines (e.g. additional jobs). Applied together with backup schedule. | — |
 | `AWS_ACCESS_KEY_ID` | AWS access key (optional if using IAM role / instance profile). | — |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key (optional if using IAM role). | — |
