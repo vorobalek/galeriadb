@@ -5,6 +5,10 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Use bash with pipefail so piped RUN fails if any command in the pipe fails
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=DL3008: pinning every apt package is impractical for base image
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \

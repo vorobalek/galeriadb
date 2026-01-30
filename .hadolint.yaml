@@ -1,0 +1,4 @@
+# Ignore DL3008 (pin apt versions) for this repo: base image uses many packages,
+# pinning each is impractical and we rely on FROM ubuntu:24.04 for reproducibility.
+ignored:
+  - DL3008
