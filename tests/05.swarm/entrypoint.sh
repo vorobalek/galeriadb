@@ -53,20 +53,21 @@ cd examples/docker-swarm
 # Compose uses ${IMAGE:-galeriadb/11.8:latest}; we set IMAGE for our test build
 export IMAGE
 docker stack deploy -c docker-compose.yml mariadb
-# Poll until galera service has 3/3 replicas (as soon as ready).
-log "Waiting for mariadb_galera 3/3 replicas (up to 90s)..."
+# Galera is global: one task per node. Expect N/N where N = number of nodes.
+expected_replicas=$(docker node ls -q 2>/dev/null | wc -l | tr -d ' ')
+log "Waiting for mariadb_galera $expected_replicas/$expected_replicas replicas (up to 90s)..."
 elapsed=0
 while [ "$elapsed" -lt 90 ]; do
   replicas=$(docker service ls --format '{{.Replicas}}' -f name=mariadb_galera 2>/dev/null | head -1 || echo "")
-  if [ "$replicas" = "3/3" ]; then
-    log "mariadb_galera 3/3"
+  if [ "$replicas" = "${expected_replicas}/${expected_replicas}" ]; then
+    log "mariadb_galera $replicas"
     break
   fi
   sleep 1
   elapsed=$((elapsed + 1))
 done
-if [ "$replicas" != "3/3" ]; then
-  log "mariadb_galera did not reach 3/3 (got $replicas)"
+if [ "$replicas" != "${expected_replicas}/${expected_replicas}" ]; then
+  log "mariadb_galera did not reach $expected_replicas/$expected_replicas (got $replicas)"
   docker service ls
   exit 1
 fi
