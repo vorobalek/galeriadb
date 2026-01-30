@@ -70,7 +70,7 @@ Hot backups run only on nodes in **Synced** state. To enable scheduled backups, 
 | `AWS_REGION` / `AWS_DEFAULT_REGION` | AWS region for S3. | `eu-west-1` |
 | `AWS_ENDPOINT_URL` | Custom S3 endpoint (e.g. MinIO). | `https://s3.example.com` |
 
-Manual run: `docker exec <container> /usr/local/bin/galera-backup.sh`. Logs: `/var/log/galera-backup.log` inside the container.
+Manual run: `docker exec <container> /usr/local/bin/galera-backup.sh`. The script always uses the configured root password (`GALERIA_ROOT_PASSWORD`). Logs: `/var/log/galera-backup.log` inside the container.
 
 In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the first task starts. If no peers resolve within the discovery window, the node bootstraps a new cluster; later tasks will resolve and join. This avoids long waits when DNS will not resolve (e.g. single-node or fixed-IP setups).
 

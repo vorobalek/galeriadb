@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Setup cron for hot backups to S3. Writes env file and installs crontab.
 # Called by entrypoint.sh when GALERIA_BACKUP_SCHEDULE and S3 destination are set.
-# Expects GALERIA_BACKUP_* and AWS_* (and MYSQL_PWD) in environment.
+# Expects GALERIA_BACKUP_* and AWS_* (and GALERIA_ROOT_PASSWORD) in environment.
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ log() { echo "[$(date -Is)] $*"; }
 
 ENV_FILE="/run/galera-backup.env"
 {
-  echo "export MYSQL_PWD=\"${MYSQL_PWD}\""
+  echo "export GALERIA_ROOT_PASSWORD=\"${GALERIA_ROOT_PASSWORD}\""
   [ -n "${GALERIA_BACKUP_S3_URI:-}" ] && echo "export GALERIA_BACKUP_S3_URI=\"${GALERIA_BACKUP_S3_URI}\""
   [ -n "${GALERIA_BACKUP_S3_BUCKET:-}" ] && echo "export GALERIA_BACKUP_S3_BUCKET=\"${GALERIA_BACKUP_S3_BUCKET}\""
   [ -n "${GALERIA_BACKUP_S3_PATH:-}" ] && echo "export GALERIA_BACKUP_S3_PATH=\"${GALERIA_BACKUP_S3_PATH}\""
