@@ -27,7 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Layer 2: MariaDB + Galera (rebuilt when DB version changes)
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-11.8" \
+    && curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-12.1" \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
     mariadb-server \
@@ -55,8 +55,9 @@ COPY galera-write-config.sh /usr/local/bin/galera-write-config.sh
 COPY galera-healthcheck.sh /usr/local/bin/galera-healthcheck.sh
 COPY galera-backup.sh /usr/local/bin/galera-backup.sh
 COPY galera-backup-setup.sh /usr/local/bin/galera-backup-setup.sh
+COPY mariadb-update.sh /usr/local/bin/mariadb-update.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/galera-discovery.sh /usr/local/bin/galera-write-config.sh /usr/local/bin/galera-healthcheck.sh /usr/local/bin/galera-backup.sh /usr/local/bin/galera-backup-setup.sh \
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/mariadb-update.sh /usr/local/bin/galera-discovery.sh /usr/local/bin/galera-write-config.sh /usr/local/bin/galera-healthcheck.sh /usr/local/bin/galera-backup.sh /usr/local/bin/galera-backup-setup.sh \
     && chown -R mysql:mysql /etc/mysql /var/lib/mysql /var/run/mysqld 2>/dev/null || true \
     && mkdir -p /var/run/mysqld && chown mysql:mysql /var/run/mysqld
 

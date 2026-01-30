@@ -5,7 +5,7 @@
 
 SHELL := /bin/bash
 # Use :local for tests so we never accidentally use a pulled image when running via make
-IMAGE ?= galeriadb/11.8:local
+IMAGE ?= galeriadb/12.1:local
 DEV_IMAGE ?= galeriadb/dev:local
 DOCKERFILE ?= docker/Dockerfile
 DOCKERFILE_DEV ?= docker/Dockerfile.dev
@@ -17,10 +17,10 @@ ARTIFACTS_DIR ?= ./artifacts
 SH_FILES := $(shell find docker tests -name '*.sh' 2>/dev/null || true)
 DOCKERFILES := $(shell find . -name 'Dockerfile' -not -path './.git/*' 2>/dev/null || true)
 
-.PHONY: help lint lint-docker build build-dev ci ci-docker swarm cst security test-smoke test-deploy test-backup-s3 test clean
+.PHONY: help lint lint-docker build build-dev ci ci-docker swarm cst security test-smoke test-deploy test-backup-s3 test-upgrade test clean
 
 help:
-	@echo "Targets: lint, lint-docker, build, build-dev, ci, ci-docker, swarm, cst, security, test-smoke, test-deploy, test-backup-s3, test"
+	@echo "Targets: lint, lint-docker, build, build-dev, ci, ci-docker, swarm, cst, security, test-smoke, test-deploy, test-backup-s3, test-upgrade, test"
 
 lint: lint-dockerfile lint-shell lint-shfmt
 
@@ -50,7 +50,7 @@ build-dev:
 	docker build -t "$(DEV_IMAGE)" -f "$(DOCKERFILE_DEV)" .
 
 # Single entry point for all tests. Used by CI and locally (make ci or make ci-docker).
-ci: lint build cst security test-smoke test-deploy test-backup-s3
+ci: lint build cst security test-smoke test-deploy test-backup-s3 test-upgrade
 	@echo "--- CI passed ---"
 
 # Swarm sanity (main/schedule only in CI). Uses IMAGE; run after make ci.
@@ -103,6 +103,11 @@ test-deploy: build
 test-backup-s3: build
 	@echo "--- S3 backup test (MinIO) ---"
 	./tests/03.backup-s3/entrypoint.sh "$(IMAGE)"
+
+test-upgrade: build
+	@echo "--- upgrade test (11.8 from Docker Hub → 12.1 local) ---"
+	docker pull --platform=linux/amd64 galeriadb/11.8:latest || true
+	IMAGE_12_1="$(IMAGE)" bash ./tests/06.upgrade/entrypoint.sh
 
 # Alias for ci (single entry point for full check).
 test: ci

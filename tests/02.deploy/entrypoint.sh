@@ -3,7 +3,7 @@
 # Usage: ./tests/02.deploy/entrypoint.sh [IMAGE] [CASE]
 #   CASE: 01.all | 02.mixed | 03.restart | 04.full-restart (default: run all in order)
 # Env: COMPOSE_IMAGE, CASE, ARTIFACTS_DIR, HOST_WORKSPACE (host path for compose volumes; required when running inside ci-docker)
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
+# IMAGE defaults to galeriadb/12.1:local (use 'make build' first)
 
 set -euo pipefail
 
@@ -12,7 +12,7 @@ CASES_DIR="${SCRIPT_DIR}/cases"
 # shellcheck source=../00.lib/common.sh disable=SC1091
 source "${SCRIPT_DIR}/../00.lib/common.sh"
 
-IMAGE="${1:-${COMPOSE_IMAGE:-galeriadb/11.8:local}}"
+IMAGE="${1:-${COMPOSE_IMAGE:-galeriadb/12.1:local}}"
 CASE_ARG="${2:-${CASE:-}}"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
   log "Image $IMAGE not found. Run 'make build' first."

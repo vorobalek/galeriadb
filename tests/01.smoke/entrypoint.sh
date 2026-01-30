@@ -2,7 +2,7 @@
 # Smoke test: required env validation + one-node startup. Runs cases from cases/.
 # Usage: ./tests/01.smoke/entrypoint.sh [IMAGE] [CASE]
 #   CASE: 01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate (default: run all in order)
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
+# IMAGE defaults to galeriadb/12.1:local (use 'make build' first)
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ CASES_DIR="${SCRIPT_DIR}/cases"
 # shellcheck source=../00.lib/common.sh disable=SC1091
 source "${SCRIPT_DIR}/../00.lib/common.sh"
 
-IMAGE="${1:-galeriadb/11.8:local}"
+IMAGE="${1:-galeriadb/12.1:local}"
 CASE_ARG="${2:-}"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
   log "Image $IMAGE not found. Run 'make build' first."

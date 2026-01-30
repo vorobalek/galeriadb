@@ -6,8 +6,8 @@ Docker image for **MariaDB + Galera Cluster**, suitable for Docker Compose and D
 
 ## Image
 
-- **Docker Hub:** `galeriadb/11.8`
-- **Tag:** `latest` (image name is the MariaDB version, e.g. `galeriadb/11.8:latest`)
+- **Docker Hub:** `galeriadb/12.1`
+- **Tag:** `latest` (image name is the MariaDB version, e.g. `galeriadb/12.1:latest`)
 
 Built and published via [GitHub Actions](.github/workflows/docker-publish.yml) on push to `main`. Repository secrets required: `DOCKER_USERNAME`, `DOCKER_PASSWORD` (Docker Hub account used for publishing).
 
@@ -85,7 +85,7 @@ In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the f
 ## Building the image locally
 
 ```bash
-docker build -t galeriadb/11.8:latest -f docker/Dockerfile docker/
+docker build -t galeriadb/12.1:latest -f docker/Dockerfile docker/
 ```
 
 ## Testing locally
@@ -110,22 +110,23 @@ Individual targets:
 
 | Command | Description |
 |---------|-------------|
-| `make ci` | **Single entry point:** lint, build, CST, security, smoke, deploy, backup-s3 (same as CI) |
+| `make ci` | **Single entry point:** lint, build, CST, security, smoke, deploy, backup-s3, test-upgrade (same as CI) |
 | `make ci-docker` | Same as `make ci`, but inside dev container (uses host Docker socket) |
 | `make lint` | Hadolint (Dockerfile), ShellCheck and shfmt (shell scripts) |
 | `make lint-docker` | Lint only, in container (same dev image as `ci-docker`) |
-| `make build` | Build image (default `galeriadb/11.8:local`) |
+| `make build` | Build image (default `galeriadb/12.1:local`) |
 | `make swarm` | Swarm sanity (deploy stack, wait, cleanup); uses `IMAGE`; run after `make ci` on main/nightly |
 | `make cst` | Container Structure Tests |
 | `make security` | Trivy (CRITICAL) + Dockle |
 | `make smoke` | Smoke test: all required env present (container starts, MySQL ready) + one case per missing required var (container exits with error) |
 | `make deploy` | 3-node Galera + HAProxy; entrypoint runs all cases in order (01.all, 02.mixed, 03.restart, 04.full-restart) |
 | `make backup-s3` | S3 backup test (MinIO) |
+| `make test-upgrade` | Upgrade test: 11.8 from Docker Hub → 12.1 local (make build; pulls galeriadb/11.8:latest) |
 
-Tests live in `tests/00.*`–`05.*`; each test dir has `entrypoint.sh`. **All tests use the image in `IMAGE`** (default `galeriadb/11.8:local`). Run `make build` before running scripts directly.
+Tests live in `tests/00.*`–`06.*`; each test dir has `entrypoint.sh`. **All tests use the image in `IMAGE`** (default `galeriadb/12.1:local`). Run `make build` before running scripts directly.
 
 ```bash
-make build   # builds galeriadb/11.8:local
+make build   # builds galeriadb/12.1:local
 ./tests/01.smoke/entrypoint.sh                    # all cases (01.all-required, 02.missing-peers, 03.missing-root-password, 04.missing-bootstrap-candidate)
 ./tests/01.smoke/entrypoint.sh "" 02.missing-peers   # single case
 ./tests/02.deploy/entrypoint.sh                    # all cases (01.all → 02.mixed → 03.restart → 04.full-restart)
@@ -133,8 +134,9 @@ make build   # builds galeriadb/11.8:local
 ./tests/03.backup-s3/entrypoint.sh
 ./tests/03.backup-s3/entrypoint.sh "" 01.backup-to-s3          # one case
 ./tests/04.cst/entrypoint.sh
-./tests/05.swarm/entrypoint.sh   # IMAGE=galeriadb/11.8:local (or other tag)
-# Or pass image: ./tests/01.smoke/entrypoint.sh galeriadb/11.8:latest
+./tests/05.swarm/entrypoint.sh   # IMAGE=galeriadb/12.1:local (or other tag)
+./tests/06.upgrade/entrypoint.sh # upgrade test 11.8 (Docker Hub) → 12.1 (make build)
+# Or pass image: ./tests/01.smoke/entrypoint.sh galeriadb/12.1:latest
 ```
 
 On failure, deploy tests write diagnostics to `./artifacts/` (docker ps, compose logs, inspect).
@@ -144,7 +146,7 @@ On failure, deploy tests write diagnostics to `./artifacts/` (docker ps, compose
 GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uses **one entry point:** `make ci` (run inside a dev container). Same suite locally: `make ci` or `make ci-docker`.
 
 - **Triggers:** pull requests, push to main, manual, nightly.
-- **Image under test:** tagged with commit SHA (`galeriadb/11.8:sha-<sha>`), never `latest`, so the publish workflow cannot accidentally push an untested image.
+- **Image under test:** tagged with commit SHA (`galeriadb/12.1:sha-<sha>`), never `latest`, so the publish workflow cannot accidentally push an untested image.
 - **Jobs:** (1) **CI** — build dev image, run `make ci` in container; (2) **Swarm** — on main/nightly only, run `make swarm` with the same SHA-tagged image.
 
 **Troubleshooting:** On failure, open the run → **Summary** → **Artifacts** → `ci-diagnostics` (docker-ps, compose logs, inspect, network/volume lists).
@@ -156,7 +158,7 @@ GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) u
 - `examples/docker-compose/` — sample Compose stack (three Galera nodes + HAProxy) for local testing.
 - `examples/docker-swarm/` — sample Swarm stack (global Galera + HAProxy + optional mysqld-exporter); see `examples/docker-swarm/README.md`.
 
-**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/` (cases: all required present, missing GALERIA_PEERS, missing GALERIA_ROOT_PASSWORD, missing GALERIA_BOOTSTRAP_CANDIDATE), `02.deploy/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
+**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/` (cases: all required present, missing GALERIA_PEERS, missing GALERIA_ROOT_PASSWORD, missing GALERIA_BOOTSTRAP_CANDIDATE), `02.deploy/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`, `06.upgrade/` (11.8 → 12.1 cluster upgrade). Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
 
 ## License
 

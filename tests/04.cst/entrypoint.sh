@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Container Structure Test: run CST with config from this test dir.
 # Usage: ./tests/04.cst/entrypoint.sh [IMAGE]
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first). Requires container-structure-test on PATH.
+# IMAGE defaults to galeriadb/12.1:local (use 'make build' first). Requires container-structure-test on PATH.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${SCRIPT_DIR}/config/cst.yaml"
-IMAGE="${1:-galeriadb/11.8:local}"
+IMAGE="${1:-galeriadb/12.1:local}"
 
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
   echo "Image $IMAGE not found. Run 'make build' first." >&2

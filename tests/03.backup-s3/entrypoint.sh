@@ -2,7 +2,7 @@
 # S3 backup test: MinIO + Galera, backup to S3. Runs cases from cases/ (01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old).
 # Usage: ./tests/03.backup-s3/entrypoint.sh [IMAGE] [CASE]
 #   CASE: 01.backup-to-s3 | 02.fail-without-s3-config | 03.retention-deletes-old (default: run all in order)
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
+# IMAGE defaults to galeriadb/12.1:local (use 'make build' first)
 
 set -euo pipefail
 
@@ -11,7 +11,7 @@ CASES_DIR="${SCRIPT_DIR}/cases"
 # shellcheck source=../00.lib/common.sh disable=SC1091
 source "${SCRIPT_DIR}/../00.lib/common.sh"
 
-IMAGE="${1:-galeriadb/11.8:local}"
+IMAGE="${1:-galeriadb/12.1:local}"
 CASE_ARG="${2:-}"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
   log "Image $IMAGE not found. Run 'make build' first."

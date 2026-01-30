@@ -22,6 +22,9 @@ fileExistenceTests:
   - name: "galera-backup-setup exists"
     path: "/usr/local/bin/galera-backup-setup.sh"
     shouldExist: true
+  - name: "mariadb-update exists"
+    path: "/usr/local/bin/mariadb-update.sh"
+    shouldExist: true
   - name: "galera config template exists"
     path: "/etc/mysql/conf.d/galera.cnf.template"
     shouldExist: true

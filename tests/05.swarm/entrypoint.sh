@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Swarm sanity test: init swarm, deploy stack, wait, cleanup.
-# Usage: IMAGE=galeriadb/11.8:tag ./tests/05.swarm/entrypoint.sh
+# Usage: IMAGE=galeriadb/12.1:tag ./tests/05.swarm/entrypoint.sh
 # Expects: IMAGE set; image must exist (run 'make build' first with same IMAGE).
 
 set -e
@@ -50,7 +50,7 @@ cleanup() {
 trap cleanup EXIT
 
 cd examples/docker-swarm
-# Compose uses ${IMAGE:-galeriadb/11.8:latest}; we set IMAGE for our test build
+# Compose uses ${IMAGE:-galeriadb/12.1:latest}; we set IMAGE for our test build
 export IMAGE
 docker stack deploy -c docker-compose.yml mariadb
 # Galera is global: one task per node. Expect N/N where N = number of nodes.

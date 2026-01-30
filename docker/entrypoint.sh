@@ -66,6 +66,9 @@ if ! mariadb -u root -e "SELECT 1" &>/dev/null; then
   exit 1
 fi
 
+# --- Safe upgrade of system tables when data comes from older MariaDB (e.g. 11.8 → 12.1) ---
+"${SCRIPT_DIR}/mariadb-update.sh" || true
+
 # --- Ensure root@% exists ---
 ROOT_SQL="CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${GALERIA_ROOT_PASSWORD}';
 GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
