@@ -7,7 +7,9 @@ set -euo pipefail
 
 log() { echo "[$(date -Is)] $*"; }
 
-: "${MYSQL_PWD:?MYSQL_PWD is required for backup}"
+# Use the configured root password (set at container start; cron sources it from /run/galera-backup.env)
+: "${GALERIA_ROOT_PASSWORD:?GALERIA_ROOT_PASSWORD is required for backup}"
+MYSQL_PWD="${GALERIA_ROOT_PASSWORD}"
 
 # Backup destination: full URI or bucket + path
 if [ -n "${GALERIA_BACKUP_S3_URI:-}" ]; then
