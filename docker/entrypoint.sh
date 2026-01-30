@@ -47,7 +47,7 @@ fi
 MYSQLD_PID=$!
 
 # --- Wait for MariaDB ready ---
-for i in $(seq 1 60); do
+for _ in $(seq 1 60); do
   if mariadb -u root -e "SELECT 1" &>/dev/null || mariadb -u root -p"$MYSQL_PWD" -h 127.0.0.1 -e "SELECT 1" &>/dev/null; then
     break
   fi
