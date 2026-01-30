@@ -32,15 +32,30 @@ Third-party components used in the Docker image (docker/ build)
    - Source: http://www.dest-unreach.org/socat/
    - License: GPL v2 (GNU General Public License version 2)
 
+5. MariaDB Backup (mariadb-backup)
+   - Source: https://mariadb.com/kb/en/mariabackup-overview/
+   - License: GPL v2 (same as MariaDB Server)
+   - Used for hot backups to S3.
+
+6. cron
+   - Source: https://packages.debian.org/cron
+   - License: GPL v2 (or later)
+   - Used for scheduled backup jobs.
+
+7. AWS CLI v2
+   - Source: https://github.com/aws/aws-cli
+   - License: Apache-2.0
+   - Installed via official installer; used for S3 uploads in backup feature.
+
 Other packages installed via apt (ca-certificates, curl, rsync, gettext-base,
-etc.) are part of the Ubuntu/Debian ecosystem; their licenses are documented
-in the respective packages and in the base image.
+unzip, etc.) are part of the Ubuntu/Debian ecosystem; their licenses are
+documented in the respective packages and in the base image.
 
 -------------------------------------------------------------------------------
 Third-party components referenced in examples only (not in our image)
 -------------------------------------------------------------------------------
 
-5. HAProxy (example docker-compose uses haproxy:2.9-alpine)
+8. HAProxy (example docker-compose uses haproxy:2.9-alpine)
    - Source: https://github.com/haproxy/haproxy
    - License: GPL v2
    - Used only in the example stack; not included in the galeriadb image.
@@ -49,11 +64,11 @@ Third-party components referenced in examples only (not in our image)
 Third-party components used in CI (GitHub Actions)
 -------------------------------------------------------------------------------
 
-6. actions/checkout
+9. actions/checkout
    - Source: https://github.com/actions/checkout
    - License: MIT
 
-7. docker/setup-buildx-action, docker/login-action, docker/build-push-action
+10. docker/setup-buildx-action, docker/login-action, docker/build-push-action
    - Source: https://github.com/docker/setup-buildx-action and related repos
    - License: Apache-2.0 or MIT (see each action's repository)
 
@@ -61,8 +76,8 @@ Third-party components used in CI (GitHub Actions)
 GPL note
 -------------------------------------------------------------------------------
 
-MariaDB, Galera, socat, and HAProxy are licensed under the GNU General Public
-License (GPL) v2. The source code for these programs is available from the
+MariaDB, Galera, socat, cron, and HAProxy are licensed under the GNU General
+Public License (GPL) v2. The source code for these programs is available from the
 upstream links above. This repository does not modify their source code; it
 only installs them via the system package manager (apt) when building the
 Docker image. Distribution of the built image may be considered distribution
