@@ -8,6 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Use bash with pipefail so piped RUN fails if any command in the pipe fails
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# Layer 1: base packages (changes rarely) — best cache reuse
 # hadolint ignore=DL3008: pinning every apt package is impractical for base image
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
@@ -20,6 +21,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rsync \
     gettext-base \
     socat \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Layer 2: MariaDB + Galera (rebuilt when DB version changes)
+# hadolint ignore=DL3008
+RUN apt-get update \
     && curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-11.8" \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -28,8 +35,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mariadb-backup \
     galera-4 \
     unzip \
-    && curl -sSfL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip \
-    && unzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install -b /usr/local/bin && rm -rf /tmp/aws /tmp/awscliv2.zip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Layer 3: AWS CLI (rebuilt only when CLI/version changes)
+RUN curl -sSfL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip \
+    && unzip -q /tmp/awscliv2.zip -d /tmp \
+    && /tmp/aws/install -b /usr/local/bin \
+    && rm -rf /tmp/aws /tmp/awscliv2.zip \
     && apt-get purge -y unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
