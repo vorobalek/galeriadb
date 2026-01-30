@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Common vars and helpers for integration cases. Source from entrypoint.
+# Common vars and helpers for deploy cases. Source from entrypoint.
 # Expects: COMPOSE_FILE, PROJECT_NAME, PASS, IMAGE (set by entrypoint).
 
 # Poll until galera1 accepts MySQL (e.g. after bootstrap). No fixed sleep.

@@ -45,4 +45,4 @@ commandTests:
     excludedOutput: []
 
 # v2 schema does not support exposedPortsTest/entrypointTest; ports and entrypoint
-# are covered by file/command tests and by smoke/integration tests.
+# are covered by file/command tests and by smoke/deploy tests.

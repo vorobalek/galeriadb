@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Integration test: 3 Galera nodes + HAProxy. Runs cases from cases/ (01.all, 02.mixed, 03.restart).
-# Usage: ./tests/02.integration/entrypoint.sh [IMAGE] [CASE]
-#   CASE: 01.all | 02.mixed | 03.restart (default: run all in order)
-# Env: COMPOSE_IMAGE, CASE (legacy), ARTIFACTS_DIR, HOST_WORKSPACE (host path for compose volumes; required when running inside ci-docker)
+# Deploy test: 3 Galera nodes + HAProxy. Runs cases from cases/ (01.all, 02.mixed, 03.restart, 04.full-restart).
+# Usage: ./tests/02.deploy/entrypoint.sh [IMAGE] [CASE]
+#   CASE: 01.all | 02.mixed | 03.restart | 04.full-restart (default: run all in order)
+# Env: COMPOSE_IMAGE, CASE, ARTIFACTS_DIR, HOST_WORKSPACE (host path for compose volumes; required when running inside ci-docker)
 # IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
 
 set -euo pipefail
@@ -30,6 +30,7 @@ case "$CASE_ARG" in
   all) CASE_ARG="01.all" ;;
   mixed) CASE_ARG="02.mixed" ;;
   restart) CASE_ARG="03.restart" ;;
+  full-restart) CASE_ARG="04.full-restart" ;;
 esac
 
 cleanup() {
@@ -48,12 +49,12 @@ source "${CASES_DIR}/00.common.sh"
 
 if [ -n "$CASE_ARG" ]; then
   case "$CASE_ARG" in
-    01.all | 02.mixed | 03.restart)
+    01.all | 02.mixed | 03.restart | 04.full-restart)
       # shellcheck disable=SC1090,SC1091
       source "${CASES_DIR}/${CASE_ARG}.sh"
       ;;
     *)
-      log "Unknown case: $CASE_ARG (use 01.all, 02.mixed, 03.restart)"
+      log "Unknown case: $CASE_ARG (use 01.all, 02.mixed, 03.restart, 04.full-restart)"
       exit 1
       ;;
   esac
@@ -64,6 +65,8 @@ else
   source "${CASES_DIR}/02.mixed.sh"
   # shellcheck disable=SC1091
   source "${CASES_DIR}/03.restart.sh"
+  # shellcheck disable=SC1091
+  source "${CASES_DIR}/04.full-restart.sh"
 fi
 
-log "Integration test passed."
+log "Deploy test passed."

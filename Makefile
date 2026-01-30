@@ -17,10 +17,10 @@ ARTIFACTS_DIR ?= ./artifacts
 SH_FILES := $(shell find docker tests -name '*.sh' 2>/dev/null || true)
 DOCKERFILES := $(shell find . -name 'Dockerfile' -not -path './.git/*' 2>/dev/null || true)
 
-.PHONY: help lint lint-docker build build-dev ci ci-docker swarm cst security smoke integration backup-s3 test clean
+.PHONY: help lint lint-docker build build-dev ci ci-docker swarm cst security test-smoke test-deploy test-backup-s3 test clean
 
 help:
-	@echo "Targets: lint, lint-docker, build, build-dev, ci, ci-docker, swarm, cst, security, smoke, integration, backup-s3, test"
+	@echo "Targets: lint, lint-docker, build, build-dev, ci, ci-docker, swarm, cst, security, test-smoke, test-deploy, test-backup-s3, test"
 
 lint: lint-dockerfile lint-shell lint-shfmt
 
@@ -50,13 +50,13 @@ build-dev:
 	docker build -t "$(DEV_IMAGE)" -f "$(DOCKERFILE_DEV)" .
 
 # Single entry point for all tests. Used by CI and locally (make ci or make ci-docker).
-ci: lint build cst security smoke integration backup-s3
+ci: lint build cst security test-smoke test-deploy test-backup-s3
 	@echo "--- CI passed ---"
 
 # Swarm sanity (main/schedule only in CI). Uses IMAGE; run after make ci.
 swarm: build
 	@echo "--- swarm sanity ---"
-	./tests/05.swarm/entrypoint.sh
+	bash ./tests/05.swarm/entrypoint.sh
 
 # Run full CI inside dev container; uses host Docker via socket (no Docker-in-Docker).
 # Trivy cache is mounted so the vuln DB is downloaded once and reused (no ~800 MiB each run).
@@ -91,22 +91,22 @@ security: build
 	@command -v dockle >/dev/null 2>&1 || (echo "dockle not found" && exit 1)
 	@dockle --exit-code 1 -i CIS-DI-0001 $(IMAGE)
 
-smoke: build
+test-smoke: build
 	@echo "--- smoke test ---"
 	./tests/01.smoke/entrypoint.sh "$(IMAGE)"
 
-# Runs all integration cases in order: 01.all, 02.mixed, 03.restart (one compose config).
-integration: build
-	@echo "--- integration test ---"
-	COMPOSE_IMAGE="$(IMAGE)" ./tests/02.integration/entrypoint.sh "$(IMAGE)"
+# Runs all deploy cases in order: 01.all, 02.mixed, 03.restart, 04.full-restart (one compose config).
+test-deploy: build
+	@echo "--- deploy test ---"
+	COMPOSE_IMAGE="$(IMAGE)" ./tests/02.deploy/entrypoint.sh "$(IMAGE)"
 
-backup-s3: build
+test-backup-s3: build
 	@echo "--- S3 backup test (MinIO) ---"
 	./tests/03.backup-s3/entrypoint.sh "$(IMAGE)"
 
-test: lint build cst security smoke integration
-	@echo "--- all tests passed ---"
+# Alias for ci (single entry point for full check).
+test: ci
 
 clean:
-	@docker compose -f tests/02.integration/compose/compose.test.yml -p galeriadb-test down -v --remove-orphans 2>/dev/null || true
+	@docker compose -f tests/02.deploy/compose/compose.test.yml -p galeriadb-test down -v --remove-orphans 2>/dev/null || true
 	@rm -rf "$(ARTIFACTS_DIR)"

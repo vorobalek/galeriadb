@@ -101,7 +101,7 @@ Individual targets:
 
 | Command | Description |
 |---------|-------------|
-| `make ci` | **Single entry point:** lint, build, CST, security, smoke, integration, backup-s3 (same as CI) |
+| `make ci` | **Single entry point:** lint, build, CST, security, smoke, deploy, backup-s3 (same as CI) |
 | `make ci-docker` | Same as `make ci`, but inside dev container (uses host Docker socket) |
 | `make lint` | Hadolint (Dockerfile), ShellCheck and shfmt (shell scripts) |
 | `make lint-docker` | Lint only, in container (same dev image as `ci-docker`) |
@@ -110,7 +110,7 @@ Individual targets:
 | `make cst` | Container Structure Tests |
 | `make security` | Trivy (CRITICAL) + Dockle |
 | `make smoke` | Single-container smoke test |
-| `make integration` | 3-node Galera + HAProxy; entrypoint runs all cases in order (01.all, 02.mixed, 03.restart) |
+| `make deploy` | 3-node Galera + HAProxy; entrypoint runs all cases in order (01.all, 02.mixed, 03.restart, 04.full-restart) |
 | `make backup-s3` | S3 backup test (MinIO) |
 
 Tests live in `tests/00.*`–`05.*`; each test dir has `entrypoint.sh`. **All tests use the image in `IMAGE`** (default `galeriadb/11.8:local`). Run `make build` before running scripts directly.
@@ -118,8 +118,8 @@ Tests live in `tests/00.*`–`05.*`; each test dir has `entrypoint.sh`. **All te
 ```bash
 make build   # builds galeriadb/11.8:local
 ./tests/01.smoke/entrypoint.sh
-./tests/02.integration/entrypoint.sh                    # all cases (01.all → 02.mixed → 03.restart)
-./tests/02.integration/entrypoint.sh "" 02.mixed        # single case (dev)
+./tests/02.deploy/entrypoint.sh                    # all cases (01.all → 02.mixed → 03.restart → 04.full-restart)
+./tests/02.deploy/entrypoint.sh "" 02.mixed        # single case (dev)
 ./tests/03.backup-s3/entrypoint.sh
 ./tests/03.backup-s3/entrypoint.sh "" 01.backup-to-s3          # one case
 ./tests/04.cst/entrypoint.sh
@@ -127,7 +127,7 @@ make build   # builds galeriadb/11.8:local
 # Or pass image: ./tests/01.smoke/entrypoint.sh galeriadb/11.8:latest
 ```
 
-On failure, integration tests write diagnostics to `./artifacts/` (docker ps, compose logs, inspect).
+On failure, deploy tests write diagnostics to `./artifacts/` (docker ps, compose logs, inspect).
 
 ## CI overview
 
@@ -146,7 +146,7 @@ GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) u
 - `examples/docker-compose/` — sample Compose stack (three Galera nodes + HAProxy) for local testing.
 - `examples/docker-swarm/` — sample Swarm stack (global Galera + HAProxy + optional mysqld-exporter); see `examples/docker-swarm/README.md`.
 
-**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/`, `02.integration/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
+**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/`, `02.deploy/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
 
 ## License
 

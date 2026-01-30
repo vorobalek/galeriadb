@@ -1,7 +1,7 @@
 # Dev/CI tools image: lint + CST + Trivy + Dockle + Docker CLI + Compose.
 # Run CI-like checks locally without installing tools; uses host Docker via socket.
 #
-#   make ci-docker   # full CI (lint, build, cst, security, smoke, integration, backup-s3)
+#   make ci-docker   # full CI (lint, build, cst, security, smoke, deploy, backup-s3)
 #   make lint-docker # lint only (same image)
 #
 # For ci-docker: requires -v /var/run/docker.sock (make ci-docker does this).
@@ -84,5 +84,5 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
 
 WORKDIR /workspace
 
-# Default: run full CI (lint + build + cst + security + smoke + integration + backup-s3)
+# Default: run full CI (lint + build + cst + security + smoke + deploy + backup-s3)
 CMD ["make", "ci"]

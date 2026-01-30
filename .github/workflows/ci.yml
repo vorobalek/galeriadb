@@ -58,8 +58,8 @@ jobs:
           docker ps -a > "${{ env.ARTIFACTS_DIR }}/docker-ps.txt" 2>&1 || true
           docker network ls > "${{ env.ARTIFACTS_DIR }}/docker-network-ls.txt" 2>&1 || true
           docker volume ls > "${{ env.ARTIFACTS_DIR }}/docker-volume-ls.txt" 2>&1 || true
-          docker compose -f tests/02.integration/compose/compose.test.yml -p galeriadb-test logs --no-color > "${{ env.ARTIFACTS_DIR }}/compose-logs.txt" 2>&1 || true
-          for cid in $(docker compose -f tests/02.integration/compose/compose.test.yml -p galeriadb-test ps -aq 2>/dev/null || true); do
+          docker compose -f tests/02.deploy/compose/compose.test.yml -p galeriadb-test logs --no-color > "${{ env.ARTIFACTS_DIR }}/compose-logs.txt" 2>&1 || true
+          for cid in $(docker compose -f tests/02.deploy/compose/compose.test.yml -p galeriadb-test ps -aq 2>/dev/null || true); do
             [ -z "$cid" ] && continue
             name=$(docker inspect -f '{{.Name}}' "$cid" 2>/dev/null | tr -d '/')
             docker inspect "$cid" > "${{ env.ARTIFACTS_DIR }}/inspect-$name.json" 2>&1 || true
