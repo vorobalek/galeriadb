@@ -13,17 +13,13 @@ on:
   schedule:
     - cron: "0 2 * * *"
 
-env:
-  IMAGE_BASE: galeriadb/11.8
-  # Test tag: commit SHA only (no latest). Publish workflow uses its own tag.
-  IMAGE_TAG: sha-${{ github.sha }}
-
 jobs:
   ci:
     name: CI (make ci)
     runs-on: ubuntu-latest
     env:
-      IMAGE: ${{ env.IMAGE_BASE }}:${{ env.IMAGE_TAG }}
+      # Test tag: commit SHA only (no latest). Publish workflow uses its own tag.
+      IMAGE: galeriadb/11.8:sha-${{ github.sha }}
       ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
     steps:
       - uses: actions/checkout@v4
@@ -83,7 +79,7 @@ jobs:
     needs: ci
     if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
     env:
-      IMAGE: ${{ env.IMAGE_BASE }}:${{ env.IMAGE_TAG }}
+      IMAGE: galeriadb/11.8:sha-${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
