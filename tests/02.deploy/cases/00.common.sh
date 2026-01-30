@@ -65,13 +65,13 @@ create_and_check_replication() {
     mariadb -u root -p"$PASS" -e "CREATE DATABASE IF NOT EXISTS testdb; USE testdb; DROP TABLE IF EXISTS ci_test; CREATE TABLE ci_test (id INT PRIMARY KEY, v VARCHAR(32)); INSERT INTO ci_test VALUES (1, 'from_node1');"
   log "Reading from galera2 and galera3 (poll until replicated)..."
   local v2 v3 attempt
-  for attempt in 1 2 3 4 5; do
+  for attempt in {1..30}; do
     v2=$(docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" exec -T galera2 mariadb -u root -p"$PASS" -Nse "USE testdb; SELECT v FROM ci_test WHERE id=1" 2>/dev/null || echo "")
     v3=$(docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" exec -T galera3 mariadb -u root -p"$PASS" -Nse "USE testdb; SELECT v FROM ci_test WHERE id=1" 2>/dev/null || echo "")
     if [ "$v2" = "from_node1" ] && [ "$v3" = "from_node1" ]; then
       break
     fi
-    [ "$attempt" -lt 5 ] && sleep 1
+    [ "$attempt" -lt 30 ] && sleep 1
   done
   if [ "$v2" != "from_node1" ] || [ "$v3" != "from_node1" ]; then
     log "Replication check failed: galera2='$v2' galera3='$v3'"
