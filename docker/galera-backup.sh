@@ -55,7 +55,9 @@ if [ -n "${GALERIA_BACKUP_RETENTION_DAYS:-}" ] && [ "$GALERIA_BACKUP_RETENTION_D
       [ -z "$key" ] && continue
       key_date="${key:0:10}"
       if [[ "$key_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] && [[ "$key_date" < "$CUTOFF" ]]; then
-        aws s3 rm "${S3_BASE}/${HOST}/${key}" "${AWS_OPTS[@]}" 2>/dev/null && log "Deleted old backup: ${key}" || true
+        if aws s3 rm "${S3_BASE}/${HOST}/${key}" "${AWS_OPTS[@]}" 2>/dev/null; then
+          log "Deleted old backup: ${key}"
+        fi
       fi
     done
   fi
