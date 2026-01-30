@@ -29,7 +29,7 @@ fi
 # Retry a few times so we don't bootstrap too eagerly when DNS is just slow.
 resolve_peers() {
     for name in $(echo "$PEER_NAMES" | tr ',' ' '); do
-        getent hosts "$name" 2>/dev/null | awk '{print $1}'
+        getent hosts "$name" 2>/dev/null | awk '{print $1}' || true
     done | sort -u | tr '\n' ' ' | xargs
 }
 ALL_HOSTS=$(resolve_peers)
