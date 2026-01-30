@@ -1,0 +1,88 @@
+# Dev/CI tools image: lint + CST + Trivy + Dockle + Docker CLI + Compose.
+# Run CI-like checks locally without installing tools; uses host Docker via socket.
+#
+#   make ci-docker   # full CI (lint, build, cst, security, smoke, deploy, backup-s3)
+#   make lint-docker # lint only (same image)
+#
+# For ci-docker: requires -v /var/run/docker.sock (make ci-docker does this).
+
+FROM debian:bookworm-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Versions for reproducible builds
+ARG HADOLINT_VERSION=2.12.0
+ARG SHFMT_VERSION=3.12.0
+ARG TRIVY_VERSION=0.52.0
+ARG DOCKLE_VERSION=0.4.15
+ARG COMPOSE_VERSION=2.40.3
+
+RUN apt-get update -qq \
+    && apt-get install -y --no-install-recommends \
+        ca-certificates \
+        curl \
+        make \
+        shellcheck \
+        wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Lint: hadolint, shfmt ---
+ARG TARGETARCH
+RUN case "$TARGETARCH" in \
+        amd64) HADOLINT_ARCH=x86_64 ;; arm64) HADOLINT_ARCH=arm64 ;; *) HADOLINT_ARCH="$TARGETARCH" ;; \
+    esac \
+    && wget -q -O /usr/local/bin/hadolint \
+        "https://github.com/hadolint/hadolint/releases/download/v${HADOLINT_VERSION}/hadolint-Linux-${HADOLINT_ARCH}" \
+    && chmod +x /usr/local/bin/hadolint
+
+RUN case "$TARGETARCH" in \
+        amd64) SHFMT_ARCH=amd64 ;; arm64) SHFMT_ARCH=arm64 ;; *) SHFMT_ARCH="$TARGETARCH" ;; \
+    esac \
+    && wget -q -O /usr/local/bin/shfmt \
+        "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_${SHFMT_ARCH}" \
+    && chmod +x /usr/local/bin/shfmt
+
+# --- Container Structure Test ---
+RUN case "$TARGETARCH" in \
+        amd64) CST_ARCH=amd64 ;; arm64) CST_ARCH=arm64 ;; *) CST_ARCH="$TARGETARCH" ;; \
+    esac \
+    && wget -q -O /usr/local/bin/container-structure-test \
+        "https://github.com/GoogleContainerTools/container-structure-test/releases/latest/download/container-structure-test-linux-${CST_ARCH}" \
+    && chmod +x /usr/local/bin/container-structure-test
+
+# --- Trivy ---
+RUN curl -sSfL "https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh" \
+    | sh -s -- -b /usr/local/bin "v${TRIVY_VERSION}"
+
+# --- Dockle ---
+RUN case "$TARGETARCH" in \
+        amd64) DOCKLE_ARCH=64bit ;; arm64) DOCKLE_ARCH=ARM64 ;; *) DOCKLE_ARCH=64bit ;; \
+    esac \
+    && wget -q "https://github.com/goodwithtech/dockle/releases/download/v${DOCKLE_VERSION}/dockle_${DOCKLE_VERSION}_Linux-${DOCKLE_ARCH}.tar.gz" -O /tmp/dockle.tar.gz \
+    && tar -xzf /tmp/dockle.tar.gz -C /tmp \
+    && mv /tmp/dockle /usr/local/bin/dockle 2>/dev/null || mv /tmp/dockle_*/dockle /usr/local/bin/dockle \
+    && chmod +x /usr/local/bin/dockle \
+    && rm -rf /tmp/dockle.tar.gz /tmp/dockle*
+
+# --- Docker CLI (client only; daemon via mounted socket). Use static binary for API 1.44+ compatibility. ---
+ARG DOCKER_CLI_VERSION=28.0.3
+RUN case "$TARGETARCH" in \
+        amd64) DOCKER_ARCH=x86_64 ;; arm64) DOCKER_ARCH=aarch64 ;; *) DOCKER_ARCH=x86_64 ;; \
+    esac \
+    && wget -q "https://download.docker.com/linux/static/stable/${DOCKER_ARCH}/docker-${DOCKER_CLI_VERSION}.tgz" -O /tmp/docker.tgz \
+    && tar -xzf /tmp/docker.tgz -C /tmp docker/docker \
+    && mv /tmp/docker/docker /usr/local/bin/docker \
+    && rm -rf /tmp/docker.tgz /tmp/docker
+
+RUN mkdir -p /usr/local/lib/docker/cli-plugins \
+    && case "$TARGETARCH" in \
+        amd64) COMPOSE_ARCH=x86_64 ;; arm64) COMPOSE_ARCH=aarch64 ;; *) COMPOSE_ARCH=x86_64 ;; \
+    esac \
+    && wget -q -O /usr/local/lib/docker/cli-plugins/docker-compose \
+        "https://github.com/docker/compose/releases/download/v${COMPOSE_VERSION}/docker-compose-linux-${COMPOSE_ARCH}" \
+    && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+WORKDIR /workspace
+
+# Default: run full CI (lint + build + cst + security + smoke + deploy + backup-s3)
+CMD ["make", "ci"]

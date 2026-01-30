@@ -1,3 +1,6 @@
+# Publish image to registry. CI tests with tag sha-<commit> (never latest);
+# this workflow builds and pushes with its own tag (:latest), so only tested
+# code can be published after CI passes.
 name: Build and push Docker image
 
 on:
@@ -8,7 +11,6 @@ on:
 
 env:
   MARIADB_VERSION: "11.8"
-  # Image: galeriadb/11.8:latest (version as repo name, tag latest)
   IMAGE_NAME: galeriadb/11.8
 
 jobs:

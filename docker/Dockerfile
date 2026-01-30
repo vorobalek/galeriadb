@@ -5,9 +5,14 @@ FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Use bash with pipefail so piped RUN fails if any command in the pipe fails
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
+# hadolint ignore=DL3008: pinning every apt package is impractical for base image
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    cron \
     dirmngr \
     gnupg \
     apt-transport-https \
@@ -20,16 +25,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
     mariadb-server \
     mariadb-client \
+    mariadb-backup \
     galera-4 \
+    unzip \
+    && curl -sSfL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip \
+    && unzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install -b /usr/local/bin && rm -rf /tmp/aws /tmp/awscliv2.zip \
+    && apt-get purge -y unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Galera config template (variables substituted at runtime)
 COPY galera.cnf.template /etc/mysql/conf.d/galera.cnf.template
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY galera-discovery.sh /usr/local/bin/galera-discovery.sh
+COPY galera-write-config.sh /usr/local/bin/galera-write-config.sh
 COPY galera-healthcheck.sh /usr/local/bin/galera-healthcheck.sh
+COPY galera-backup.sh /usr/local/bin/galera-backup.sh
+COPY galera-backup-setup.sh /usr/local/bin/galera-backup-setup.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/galera-healthcheck.sh \
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/galera-discovery.sh /usr/local/bin/galera-write-config.sh /usr/local/bin/galera-healthcheck.sh /usr/local/bin/galera-backup.sh /usr/local/bin/galera-backup-setup.sh \
     && chown -R mysql:mysql /etc/mysql /var/lib/mysql /var/run/mysqld 2>/dev/null || true \
     && mkdir -p /var/run/mysqld && chown mysql:mysql /var/run/mysqld
 

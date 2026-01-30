@@ -32,39 +32,127 @@ Third-party components used in the Docker image (docker/ build)
    - Source: http://www.dest-unreach.org/socat/
    - License: GPL v2 (GNU General Public License version 2)
 
-Other packages installed via apt (ca-certificates, curl, rsync, gettext-base,
+5. MariaDB Backup (mariadb-backup)
+   - Source: https://mariadb.com/kb/en/mariabackup-overview/
+   - License: GPL v2 (same as MariaDB Server)
+   - Used for hot backups to S3.
+
+6. cron
+   - Source: https://packages.debian.org/cron
+   - License: GPL v2 (or later)
+   - Used for scheduled backup jobs.
+
+7. AWS CLI v2
+   - Source: https://github.com/aws/aws-cli
+   - License: Apache-2.0
+   - Installed via official installer; used for S3 uploads in backup feature.
+
+Other packages installed via apt (ca-certificates, curl, dirmngr, gnupg,
+apt-transport-https, software-properties-common, rsync, gettext-base, unzip,
 etc.) are part of the Ubuntu/Debian ecosystem; their licenses are documented
 in the respective packages and in the base image.
+
+-------------------------------------------------------------------------------
+Third-party components used in the dev/CI image (docker/Dockerfile.dev)
+-------------------------------------------------------------------------------
+
+8. Debian (base image for dev/CI)
+   - Source: https://www.debian.org/
+   - License: Various (free software; see component packages).
+   - The image is based on debian:bookworm-slim from Docker Hub.
+
+9. hadolint
+   - Source: https://github.com/hadolint/hadolint
+   - License: GPL-3.0
+
+10. shfmt (mvdan/sh)
+    - Source: https://github.com/mvdan/sh
+    - License: BSD-3-Clause
+
+11. ShellCheck
+    - Source: https://github.com/koalaman/shellcheck
+    - License: GPL-3.0
+
+12. Container Structure Test (GoogleContainerTools)
+    - Source: https://github.com/GoogleContainerTools/container-structure-test
+    - License: Apache-2.0
+
+13. Trivy (aquasecurity)
+    - Source: https://github.com/aquasecurity/trivy
+    - License: Apache-2.0
+
+14. Dockle (goodwithtech)
+    - Source: https://github.com/goodwithtech/dockle
+    - License: Apache-2.0
+
+15. Docker CLI (client only)
+    - Source: https://github.com/docker/cli
+    - License: Apache-2.0
+
+16. Docker Compose (CLI plugin)
+    - Source: https://github.com/docker/compose
+    - License: Apache-2.0
+
+The dev image also installs make, ca-certificates, curl, wget from Debian;
+their licenses are documented in the base image and package metadata.
 
 -------------------------------------------------------------------------------
 Third-party components referenced in examples only (not in our image)
 -------------------------------------------------------------------------------
 
-5. HAProxy (example docker-compose uses haproxy:2.9-alpine)
+17. HAProxy (example docker-compose uses haproxy:2.9-alpine; swarm example uses haproxy:latest)
    - Source: https://github.com/haproxy/haproxy
    - License: GPL v2
    - Used only in the example stack; not included in the galeriadb image.
+
+18. Prometheus MySQLd Exporter (example docker-swarm stack uses prom/mysqld-exporter:latest)
+   - Source: https://github.com/prometheus/mysqld_exporter
+   - License: Apache-2.0
+   - Used only in the Docker Swarm example; not included in the galeriadb image.
+
+-------------------------------------------------------------------------------
+Third-party components used in tests (CI only; not in our image)
+-------------------------------------------------------------------------------
+
+19. MinIO (tests/03.backup-s3 use minio/minio:latest as S3-compatible backend)
+    - Source: https://github.com/minio/minio
+    - License: AGPL-3.0
+
+20. curlimages/curl (tests/03.backup-s3 use curlimages/curl:latest for MinIO health check)
+    - Source: https://github.com/curlimages/curl
+    - License: MIT (curl); see image for bundled components.
 
 -------------------------------------------------------------------------------
 Third-party components used in CI (GitHub Actions)
 -------------------------------------------------------------------------------
 
-6. actions/checkout
-   - Source: https://github.com/actions/checkout
-   - License: MIT
+21. actions/checkout
+    - Source: https://github.com/actions/checkout
+    - License: MIT
 
-7. docker/setup-buildx-action, docker/login-action, docker/build-push-action
-   - Source: https://github.com/docker/setup-buildx-action and related repos
-   - License: Apache-2.0 or MIT (see each action's repository)
+22. docker/setup-buildx-action, docker/login-action, docker/build-push-action
+    - Source: https://github.com/docker/setup-buildx-action and related repos
+    - License: Apache-2.0 or MIT (see each action's repository)
+
+23. actions/cache
+    - Source: https://github.com/actions/cache
+    - License: MIT
+
+24. actions/upload-artifact
+    - Source: https://github.com/actions/upload-artifact
+    - License: MIT
 
 -------------------------------------------------------------------------------
 GPL note
 -------------------------------------------------------------------------------
 
-MariaDB, Galera, socat, and HAProxy are licensed under the GNU General Public
-License (GPL) v2. The source code for these programs is available from the
-upstream links above. This repository does not modify their source code; it
-only installs them via the system package manager (apt) when building the
+MariaDB, Galera, socat, cron, and HAProxy are licensed under the GNU General
+Public License (GPL) v2. The source code for these programs is available from
+the upstream links above. This repository does not modify their source code;
+it only installs them via the system package manager (apt) when building the
 Docker image. Distribution of the built image may be considered distribution
 of GPL-licensed software; ensure you comply with GPL v2 (e.g. provide or
 offer source, include license notices) when redistributing.
+
+hadolint and ShellCheck (used in the dev/CI image only) are licensed under
+GPL v3; their source is available from the upstream links above.

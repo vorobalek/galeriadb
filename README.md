@@ -33,15 +33,46 @@ mariadb -h 127.0.0.1 -P 3306 -u root -psecret
 
 ## Environment variables
 
+### Required
+
+The image **will not start** without these variables. If any is unset or empty, the container exits immediately with an error message (no hidden defaults).
+
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user | `secret` |
 | `GALERIA_PEERS` | Comma-separated peer list: Compose service names, Swarm task names (e.g. `tasks.galera`), or IPs/hostnames. Used as the only source for cluster member discovery. | `galera1,galera2,galera3` or `tasks.galera` or `10.0.0.1,10.0.0.2,10.0.0.3` |
-| `GALERIA_CLUSTER_NAME` | Galera cluster identifier (`wsrep_cluster_name`). Nodes with the same name form one cluster; different names do not join. | `galera_cluster` |
-| `GALERIA_RESOLVE_RETRIES` | Number of retries when resolving peers (Swarm/K8s: DNS may not be ready at startup). Default `6`. | `6` |
-| `GALERIA_RESOLVE_INTERVAL` | Seconds between retries. Default `5`. | `5` |
+| `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user. Must be set explicitly; there is no default. | `secret` |
+| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that will bootstrap a new cluster when no existing cluster is found. Must match the hostname of one of your nodes (e.g. first node in Compose). | `galera1` or `galera-node-a` |
 
-In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the first task starts. If no other peers resolve after retries, the node bootstraps a new cluster; later tasks will resolve and join. This avoids deadlock where every task waits for others to appear in DNS.
+### Cluster (optional)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `GALERIA_CLUSTER_NAME` | Galera cluster identifier (`wsrep_cluster_name`). Nodes with the same name form one cluster; different names do not join. | `galera_cluster` |
+| `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to try resolving peers (Swarm/K8s: DNS may not be ready at startup). If peers do not resolve in that window, node bootstraps or joins anyway. | `5` |
+| `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. | `1` |
+| `GALERIA_NODE_ADDRESS` | Override this node's IP (used when auto-detection is wrong, e.g. complex networking). | auto-detected |
+
+### Hot backup to S3
+
+Hot backups run only on nodes in **Synced** state. To enable scheduled backups, set `GALERIA_BACKUP_SCHEDULE` and either `GALERIA_BACKUP_S3_URI` or `GALERIA_BACKUP_S3_BUCKET`.
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `GALERIA_BACKUP_SCHEDULE` | Cron expression for backup job. If empty, scheduled backups are disabled. | `0 1 * * *` (daily at 01:00 UTC) |
+| `GALERIA_BACKUP_S3_URI` | Full S3 URI for backups (overrides bucket+path when set). | `s3://my-bucket/mariadb` |
+| `GALERIA_BACKUP_S3_BUCKET` | S3 bucket name; path under bucket uses `GALERIA_BACKUP_S3_PATH`. Alternative to full URI. | `my-bucket` |
+| `GALERIA_BACKUP_S3_PATH` | Path under bucket when using `GALERIA_BACKUP_S3_BUCKET`. Default `mariadb`. | `backups/mariadb` |
+| `GALERIA_BACKUP_TMPDIR` | Directory for temporary backup files. Default `/tmp`. | `/var/lib/mysql/tmp` |
+| `GALERIA_BACKUP_RETENTION_DAYS` | Delete backups older than this many days (optional). Age is determined by S3 object LastModified, not by filename. | `7` |
+| `GALERIA_CRONTAB` | Extra cron lines (e.g. additional jobs). Applied together with backup schedule. | — |
+| `AWS_ACCESS_KEY_ID` | AWS access key (optional if using IAM role / instance profile). | — |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key (optional if using IAM role). | — |
+| `AWS_REGION` / `AWS_DEFAULT_REGION` | AWS region for S3. | `eu-west-1` |
+| `AWS_ENDPOINT_URL` | Custom S3 endpoint (e.g. MinIO). | `https://s3.example.com` |
+
+Manual run: `docker exec <container> /usr/local/bin/galera-backup.sh`. Logs: `/var/log/galera-backup.log` inside the container.
+
+In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the first task starts. If no peers resolve within the discovery window, the node bootstraps a new cluster; later tasks will resolve and join. This avoids long waits when DNS will not resolve (e.g. single-node or fixed-IP setups).
 
 ## Ports
 
@@ -57,11 +88,75 @@ In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the f
 docker build -t galeriadb/11.8:latest -f docker/Dockerfile docker/
 ```
 
+## Testing locally
+
+**Single entry point for all tests:** `make ci` (or `make ci-docker` to run inside a container without installing tools). CI runs the same `make ci` in a dev container, so local and CI stay consistent.
+
+**Dependencies (for `make ci` on the host):** Docker, Docker Compose, [hadolint](https://github.com/hadolint/hadolint), [ShellCheck](https://www.shellcheck.net/), [shfmt](https://github.com/mvdan/sh), [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test), [Trivy](https://github.com/aquasecurity/trivy), [Dockle](https://github.com/goodwithtech/dockle). **No local tools:** use `make ci-docker` (builds `docker/Dockerfile.dev` and runs `make ci` with host Docker socket).
+
+Run the full test suite (same as CI):
+
+```bash
+make ci
+```
+
+Or in a container (no local install):
+
+```bash
+make ci-docker
+```
+
+Individual targets:
+
+| Command | Description |
+|---------|-------------|
+| `make ci` | **Single entry point:** lint, build, CST, security, smoke, deploy, backup-s3 (same as CI) |
+| `make ci-docker` | Same as `make ci`, but inside dev container (uses host Docker socket) |
+| `make lint` | Hadolint (Dockerfile), ShellCheck and shfmt (shell scripts) |
+| `make lint-docker` | Lint only, in container (same dev image as `ci-docker`) |
+| `make build` | Build image (default `galeriadb/11.8:local`) |
+| `make swarm` | Swarm sanity (deploy stack, wait, cleanup); uses `IMAGE`; run after `make ci` on main/nightly |
+| `make cst` | Container Structure Tests |
+| `make security` | Trivy (CRITICAL) + Dockle |
+| `make smoke` | Smoke test: all required env present (container starts, MySQL ready) + one case per missing required var (container exits with error) |
+| `make deploy` | 3-node Galera + HAProxy; entrypoint runs all cases in order (01.all, 02.mixed, 03.restart, 04.full-restart) |
+| `make backup-s3` | S3 backup test (MinIO) |
+
+Tests live in `tests/00.*`–`05.*`; each test dir has `entrypoint.sh`. **All tests use the image in `IMAGE`** (default `galeriadb/11.8:local`). Run `make build` before running scripts directly.
+
+```bash
+make build   # builds galeriadb/11.8:local
+./tests/01.smoke/entrypoint.sh                    # all cases (01.all-required, 02.missing-peers, 03.missing-root-password, 04.missing-bootstrap-candidate)
+./tests/01.smoke/entrypoint.sh "" 02.missing-peers   # single case
+./tests/02.deploy/entrypoint.sh                    # all cases (01.all → 02.mixed → 03.restart → 04.full-restart)
+./tests/02.deploy/entrypoint.sh "" 02.mixed        # single case (dev)
+./tests/03.backup-s3/entrypoint.sh
+./tests/03.backup-s3/entrypoint.sh "" 01.backup-to-s3          # one case
+./tests/04.cst/entrypoint.sh
+./tests/05.swarm/entrypoint.sh   # IMAGE=galeriadb/11.8:local (or other tag)
+# Or pass image: ./tests/01.smoke/entrypoint.sh galeriadb/11.8:latest
+```
+
+On failure, deploy tests write diagnostics to `./artifacts/` (docker ps, compose logs, inspect).
+
+## CI overview
+
+GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uses **one entry point:** `make ci` (run inside a dev container). Same suite locally: `make ci` or `make ci-docker`.
+
+- **Triggers:** pull requests, push to main, manual, nightly.
+- **Image under test:** tagged with commit SHA (`galeriadb/11.8:sha-<sha>`), never `latest`, so the publish workflow cannot accidentally push an untested image.
+- **Jobs:** (1) **CI** — build dev image, run `make ci` in container; (2) **Swarm** — on main/nightly only, run `make swarm` with the same SHA-tagged image.
+
+**Troubleshooting:** On failure, open the run → **Summary** → **Artifacts** → `ci-diagnostics` (docker-ps, compose logs, inspect, network/volume lists).
+
 ## Repository structure
 
-- `docker/` — Dockerfile and build context (entrypoint, Galera config, health check).
+- `docker/` — Dockerfile and build context (entrypoint, discovery, config, health check, backup scripts).
+- `tests/` — Test suite: each test in its own dir with `entrypoint.sh` and assets (see below).
 - `examples/docker-compose/` — sample Compose stack (three Galera nodes + HAProxy) for local testing.
 - `examples/docker-swarm/` — sample Swarm stack (global Galera + HAProxy + optional mysqld-exporter); see `examples/docker-swarm/README.md`.
+
+**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/` (cases: all required present, missing GALERIA_PEERS, missing GALERIA_ROOT_PASSWORD, missing GALERIA_BOOTSTRAP_CANDIDATE), `02.deploy/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
 
 ## License
 

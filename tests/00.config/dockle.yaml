@@ -1,0 +1,8 @@
+# Dockle config: allowed exclusions for galeriadb image.
+# See https://github.com/goodwithtech/dockle for check IDs.
+# Only exclude checks that are intentionally accepted (e.g. base image choice).
+
+ignore:
+  # CIS-DI-0006: "Create a user for the container" - MariaDB process runs as mysql; entrypoint may run as root briefly
+  # Uncomment if dockle fails and we've verified the runtime user is safe:
+  # - CIS-DI-0006
