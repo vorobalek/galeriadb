@@ -33,15 +33,24 @@ mariadb -h 127.0.0.1 -P 3306 -u root -psecret
 
 ## Environment variables
 
-### Cluster
+### Required
+
+The image **will not start** without these variables. If any is unset or empty, the container exits immediately with an error message (no hidden defaults).
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user | `secret` |
 | `GALERIA_PEERS` | Comma-separated peer list: Compose service names, Swarm task names (e.g. `tasks.galera`), or IPs/hostnames. Used as the only source for cluster member discovery. | `galera1,galera2,galera3` or `tasks.galera` or `10.0.0.1,10.0.0.2,10.0.0.3` |
+| `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user. Must be set explicitly; there is no default. | `secret` |
+| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that will bootstrap a new cluster when no existing cluster is found. Must match the hostname of one of your nodes (e.g. first node in Compose). | `galera1` or `galera-node-a` |
+
+### Cluster (optional)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
 | `GALERIA_CLUSTER_NAME` | Galera cluster identifier (`wsrep_cluster_name`). Nodes with the same name form one cluster; different names do not join. | `galera_cluster` |
-| `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to try resolving peers (Swarm/K8s: DNS may not be ready at startup). Default `5`; if peers do not resolve in that window, node bootstraps or joins anyway. | `5` |
-| `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. Default `1`. | `1` |
+| `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to try resolving peers (Swarm/K8s: DNS may not be ready at startup). If peers do not resolve in that window, node bootstraps or joins anyway. | `5` |
+| `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. | `1` |
+| `GALERIA_NODE_ADDRESS` | Override this node's IP (used when auto-detection is wrong, e.g. complex networking). | auto-detected |
 
 ### Hot backup to S3
 
@@ -109,7 +118,7 @@ Individual targets:
 | `make swarm` | Swarm sanity (deploy stack, wait, cleanup); uses `IMAGE`; run after `make ci` on main/nightly |
 | `make cst` | Container Structure Tests |
 | `make security` | Trivy (CRITICAL) + Dockle |
-| `make smoke` | Single-container smoke test |
+| `make smoke` | Smoke test: all required env present (container starts, MySQL ready) + one case per missing required var (container exits with error) |
 | `make deploy` | 3-node Galera + HAProxy; entrypoint runs all cases in order (01.all, 02.mixed, 03.restart, 04.full-restart) |
 | `make backup-s3` | S3 backup test (MinIO) |
 
@@ -117,7 +126,8 @@ Tests live in `tests/00.*`–`05.*`; each test dir has `entrypoint.sh`. **All te
 
 ```bash
 make build   # builds galeriadb/11.8:local
-./tests/01.smoke/entrypoint.sh
+./tests/01.smoke/entrypoint.sh                    # all cases (01.all-required, 02.missing-peers, 03.missing-root-password, 04.missing-bootstrap-candidate)
+./tests/01.smoke/entrypoint.sh "" 02.missing-peers   # single case
 ./tests/02.deploy/entrypoint.sh                    # all cases (01.all → 02.mixed → 03.restart → 04.full-restart)
 ./tests/02.deploy/entrypoint.sh "" 02.mixed        # single case (dev)
 ./tests/03.backup-s3/entrypoint.sh
@@ -146,7 +156,7 @@ GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) u
 - `examples/docker-compose/` — sample Compose stack (three Galera nodes + HAProxy) for local testing.
 - `examples/docker-swarm/` — sample Swarm stack (global Galera + HAProxy + optional mysqld-exporter); see `examples/docker-swarm/README.md`.
 
-**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/`, `02.deploy/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
+**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/` (cases: all required present, missing GALERIA_PEERS, missing GALERIA_ROOT_PASSWORD, missing GALERIA_BOOTSTRAP_CANDIDATE), `02.deploy/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
 
 ## License
 

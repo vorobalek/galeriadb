@@ -3,13 +3,19 @@ set -euo pipefail
 
 log() { echo "[$(date -Is)] $*"; }
 
-: "${GALERIA_PEERS:?GALERIA_PEERS is required (e.g. tasks.galera)}"
+# Required environment variables (no defaults; container will not start without them)
+for req in GALERIA_PEERS GALERIA_ROOT_PASSWORD GALERIA_BOOTSTRAP_CANDIDATE; do
+  if [ -z "${!req:-}" ]; then
+    echo "ERROR: Required environment variable $req is not set. Set it to start the container (e.g. GALERIA_PEERS=tasks.galera, GALERIA_ROOT_PASSWORD=your-secret, GALERIA_BOOTSTRAP_CANDIDATE=galera-node-a)." >&2
+    exit 1
+  fi
+done
+
 : "${GALERIA_CLUSTER_NAME:=galera_cluster}"
 : "${GALERIA_DISCOVERY_TIMEOUT:=5}"
 : "${GALERIA_DISCOVERY_INTERVAL:=1}"
-: "${GALERIA_BOOTSTRAP_CANDIDATE:=galera-node-a}"
 
-export MYSQL_PWD="${GALERIA_ROOT_PASSWORD:-mariadb}"
+export MYSQL_PWD="${GALERIA_ROOT_PASSWORD}"
 
 # --- Discovery: resolve peers, find Synced node, set CLUSTER_ADDRESS / AM_I_BOOTSTRAP ---
 SCRIPT_DIR="${SCRIPT_DIR:-/usr/local/bin}"
@@ -61,7 +67,7 @@ if ! mariadb -u root -e "SELECT 1" &>/dev/null; then
 fi
 
 # --- Ensure root@% exists ---
-ROOT_SQL="CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${GALERIA_ROOT_PASSWORD:-mariadb}';
+ROOT_SQL="CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY '${GALERIA_ROOT_PASSWORD}';
 GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;"
 mariadb -u root -e "$ROOT_SQL" 2>/dev/null || true

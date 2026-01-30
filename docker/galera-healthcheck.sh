@@ -5,7 +5,7 @@
 set -euo pipefail
 
 MYSQL_USER="${MYSQL_CHECK_USER:-root}"
-MYSQL_PWD="${MYSQL_PWD:-${GALERIA_ROOT_PASSWORD:-}}"
+MYSQL_PWD="${MYSQL_PWD:-$GALERIA_ROOT_PASSWORD}"
 
 response() {
   local code="$1"
