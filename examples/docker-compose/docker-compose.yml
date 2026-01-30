@@ -5,11 +5,15 @@
 services:
   galera1:
     image: galeriadb/11.8:latest
+    build:
+      context: ../../docker
+      dockerfile: Dockerfile
     hostname: galera1
     environment:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
       GALERIA_CLUSTER_NAME: galera_cluster
+      GALERIA_BOOTSTRAP_CANDIDATE: galera1
     volumes:
       - galera1_data:/var/lib/mysql
     networks:
@@ -30,6 +34,7 @@ services:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
       GALERIA_CLUSTER_NAME: galera_cluster
+      GALERIA_BOOTSTRAP_CANDIDATE: galera1
     volumes:
       - galera2_data:/var/lib/mysql
     networks:
@@ -50,6 +55,7 @@ services:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
       GALERIA_CLUSTER_NAME: galera_cluster
+      GALERIA_BOOTSTRAP_CANDIDATE: galera1
     volumes:
       - galera3_data:/var/lib/mysql
     networks:
