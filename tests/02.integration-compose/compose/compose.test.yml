@@ -1,0 +1,84 @@
+# Test stack: 3 Galera nodes + HAProxy. Used by 02.integration-compose entrypoint.
+# Image is passed via COMPOSE_IMAGE or defaults to galeriadb/11.8:local (run 'make build' first).
+
+services:
+  galera1:
+    image: ${COMPOSE_IMAGE:-galeriadb/11.8:local}
+    hostname: galera1
+    environment:
+      GALERIA_ROOT_PASSWORD: secret
+      GALERIA_PEERS: galera1,galera2,galera3
+      GALERIA_CLUSTER_NAME: galera_cluster
+      GALERIA_BOOTSTRAP_CANDIDATE: galera1
+    volumes:
+      - galera1_data:/var/lib/mysql
+    networks:
+      galera_net:
+        aliases:
+          - galera1
+    healthcheck:
+      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+  galera2:
+    image: ${COMPOSE_IMAGE:-galeriadb/11.8:local}
+    hostname: galera2
+    environment:
+      GALERIA_ROOT_PASSWORD: secret
+      GALERIA_PEERS: galera1,galera2,galera3
+      GALERIA_CLUSTER_NAME: galera_cluster
+      GALERIA_BOOTSTRAP_CANDIDATE: galera1
+    volumes:
+      - galera2_data:/var/lib/mysql
+    networks:
+      galera_net:
+        aliases:
+          - galera2
+    healthcheck:
+      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+  galera3:
+    image: ${COMPOSE_IMAGE:-galeriadb/11.8:local}
+    hostname: galera3
+    environment:
+      GALERIA_ROOT_PASSWORD: secret
+      GALERIA_PEERS: galera1,galera2,galera3
+      GALERIA_CLUSTER_NAME: galera_cluster
+      GALERIA_BOOTSTRAP_CANDIDATE: galera1
+    volumes:
+      - galera3_data:/var/lib/mysql
+    networks:
+      galera_net:
+        aliases:
+          - galera3
+    healthcheck:
+      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+
+  haproxy:
+    image: haproxy:2.9-alpine
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - galera_net
+
+networks:
+  galera_net:
+    driver: bridge
+
+volumes:
+  galera1_data:
+  galera2_data:
+  galera3_data:

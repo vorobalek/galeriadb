@@ -18,3 +18,6 @@ Thumbs.db
 *.log
 tmp/
 temp/
+
+# Test diagnostics
+artifacts/

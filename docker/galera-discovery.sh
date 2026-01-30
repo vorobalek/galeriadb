@@ -3,6 +3,8 @@
 # Intended to be sourced by entrypoint.sh. Exports: IP_ADDRESS, CLUSTER_ADDRESS,
 # AM_I_BOOTSTRAP, WSREP_CLUSTER_NAME, WSREP_NODE_NAME, WSREP_NODE_ADDRESS.
 
+type log &>/dev/null || log() { echo "[$(date -Is)] $*"; }
+
 resolve_peers_ips() {
   for name in $(echo "$PEER_NAMES" | tr ',' ' '); do
     getent hosts "$name" 2>/dev/null | awk '{print $1}' || true

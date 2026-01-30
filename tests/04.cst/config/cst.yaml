@@ -1,0 +1,57 @@
+# Container Structure Tests for galeriadb image.
+# Run via: tests/04.cst/entrypoint.sh [IMAGE]
+
+schemaVersion: "2.0.0"
+
+fileExistenceTests:
+  - name: "entrypoint exists"
+    path: "/usr/local/bin/entrypoint.sh"
+    shouldExist: true
+  - name: "galera-discovery exists"
+    path: "/usr/local/bin/galera-discovery.sh"
+    shouldExist: true
+  - name: "galera-write-config exists"
+    path: "/usr/local/bin/galera-write-config.sh"
+    shouldExist: true
+  - name: "galera-healthcheck exists"
+    path: "/usr/local/bin/galera-healthcheck.sh"
+    shouldExist: true
+  - name: "galera-backup exists"
+    path: "/usr/local/bin/galera-backup.sh"
+    shouldExist: true
+  - name: "galera-backup-setup exists"
+    path: "/usr/local/bin/galera-backup-setup.sh"
+    shouldExist: true
+  - name: "galera config template exists"
+    path: "/etc/mysql/conf.d/galera.cnf.template"
+    shouldExist: true
+
+fileContentTests:
+  - name: "entrypoint is executable script"
+    path: "/usr/local/bin/entrypoint.sh"
+    expectedContents:
+      - "#!/bin/bash"
+      - "entrypoint.sh"
+
+commandTests:
+  - name: "mariadb version"
+    command: "mariadb"
+    args: ["--version"]
+    expectedOutput: ["MariaDB"]
+    excludedOutput: []
+  - name: "mysqld version"
+    command: "mariadbd"
+    args: ["--version"]
+    expectedOutput: ["mariadbd"]
+    excludedOutput: []
+
+exposedPortsTest:
+  - "3306"
+  - "4567"
+  - "4568"
+  - "4444"
+  - "9200"
+
+entrypointTest:
+  entrypoint: ["/usr/local/bin/entrypoint.sh"]
+  args: []
