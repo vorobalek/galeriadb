@@ -35,7 +35,7 @@ fi
 
 # 2) Hot backup
 mkdir -p "$TMP"
-mariabackup --backup \
+mariadb-backup --backup \
   --target-dir="$TMP" \
   --user=root --password="$MYSQL_PWD" \
   --galera-info
@@ -47,6 +47,7 @@ tar -C "$TMP" -czf "$OUT" .
 #    Age is determined by S3 object LastModified (from aws s3 ls), not by filename.
 AWS_OPTS=()
 [ -n "${AWS_ENDPOINT_URL:-}" ] && AWS_OPTS+=(--endpoint-url "$AWS_ENDPOINT_URL")
+# Retention: do not abort script if ls/rm fails (e.g. first run, no prefix yet)
 if [ -n "${GALERIA_BACKUP_RETENTION_DAYS:-}" ] && [ "$GALERIA_BACKUP_RETENTION_DAYS" -gt 0 ] 2>/dev/null; then
   CUTOFF="${GALERIA_BACKUP_RETENTION_CUTOFF_OVERRIDE:-$(date -u -d "now - ${GALERIA_BACKUP_RETENTION_DAYS} days" +%Y-%m-%d 2>/dev/null)}"
   if [ -n "$CUTOFF" ]; then
@@ -58,7 +59,7 @@ if [ -n "${GALERIA_BACKUP_RETENTION_DAYS:-}" ] && [ "$GALERIA_BACKUP_RETENTION_D
           log "Deleted old backup: ${key}"
         fi
       fi
-    done
+    done || true
   fi
 fi
 
