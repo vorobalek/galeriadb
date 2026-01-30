@@ -40,8 +40,8 @@ mariadb -h 127.0.0.1 -P 3306 -u root -psecret
 | `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user | `secret` |
 | `GALERIA_PEERS` | Comma-separated peer list: Compose service names, Swarm task names (e.g. `tasks.galera`), or IPs/hostnames. Used as the only source for cluster member discovery. | `galera1,galera2,galera3` or `tasks.galera` or `10.0.0.1,10.0.0.2,10.0.0.3` |
 | `GALERIA_CLUSTER_NAME` | Galera cluster identifier (`wsrep_cluster_name`). Nodes with the same name form one cluster; different names do not join. | `galera_cluster` |
-| `GALERIA_RESOLVE_RETRIES` | Number of retries when resolving peers (Swarm/K8s: DNS may not be ready at startup). Default `6`. | `6` |
-| `GALERIA_RESOLVE_INTERVAL` | Seconds between retries. Default `5`. | `5` |
+| `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to try resolving peers (Swarm/K8s: DNS may not be ready at startup). Default `5`; if peers do not resolve in that window, node bootstraps or joins anyway. | `5` |
+| `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. Default `1`. | `1` |
 
 ### Hot backup to S3
 
@@ -63,7 +63,7 @@ Hot backups run only on nodes in **Synced** state. To enable scheduled backups, 
 
 Manual run: `docker exec <container> /usr/local/bin/galera-backup.sh`. Logs: `/var/log/galera-backup.log` inside the container.
 
-In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the first task starts. If no other peers resolve after retries, the node bootstraps a new cluster; later tasks will resolve and join. This avoids deadlock where every task waits for others to appear in DNS.
+In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the first task starts. If no peers resolve within the discovery window, the node bootstraps a new cluster; later tasks will resolve and join. This avoids long waits when DNS will not resolve (e.g. single-node or fixed-IP setups).
 
 ## Ports
 
@@ -81,38 +81,49 @@ docker build -t galeriadb/11.8:latest -f docker/Dockerfile docker/
 
 ## Testing locally
 
-**Dependencies:** Docker, Docker Compose. For full checks: [hadolint](https://github.com/hadolint/hadolint), [ShellCheck](https://www.shellcheck.net/), [shfmt](https://github.com/mvdan/sh), [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test), [Trivy](https://github.com/aquasecurity/trivy), [Dockle](https://github.com/goodwithtech/dockle).
+**Single entry point for all tests:** `make ci` (or `make ci-docker` to run inside a container without installing tools). CI runs the same `make ci` in a dev container, so local and CI stay consistent.
 
-Run all tests (lint, build, structure tests, security, smoke, integration):
+**Dependencies (for `make ci` on the host):** Docker, Docker Compose, [hadolint](https://github.com/hadolint/hadolint), [ShellCheck](https://www.shellcheck.net/), [shfmt](https://github.com/mvdan/sh), [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test), [Trivy](https://github.com/aquasecurity/trivy), [Dockle](https://github.com/goodwithtech/dockle). **No local tools:** use `make ci-docker` (builds `docker/Dockerfile.dev` and runs `make ci` with host Docker socket).
+
+Run the full test suite (same as CI):
 
 ```bash
-make test
+make ci
+```
+
+Or in a container (no local install):
+
+```bash
+make ci-docker
 ```
 
 Individual targets:
 
 | Command | Description |
 |---------|-------------|
+| `make ci` | **Single entry point:** lint, build, CST, security, smoke, integration, backup-s3 (same as CI) |
+| `make ci-docker` | Same as `make ci`, but inside dev container (uses host Docker socket) |
 | `make lint` | Hadolint (Dockerfile), ShellCheck and shfmt (shell scripts) |
-| `make build` | Build image `galeriadb/11.8:local` |
-| `make cst` | Container Structure Tests (files, ports, commands) |
-| `make security` | Trivy (CRITICAL) + Dockle (best practices) |
-| `make smoke` | Single-container smoke test (readiness, `SELECT 1`) |
-| `make integration` | 3-node Galera + HAProxy (all cases: 01.all, 02.mixed, 03.restart) |
-| `make integration-mixed` | Same stack, case 02.mixed only (staggered start) |
-| `make integration-restart` | Same stack, case 03.restart only (restart node) |
-| `make backup-s3` | S3 backup test (cases: 01.backup-to-s3, 02.fail-without-s3-config) |
+| `make lint-docker` | Lint only, in container (same dev image as `ci-docker`) |
+| `make build` | Build image (default `galeriadb/11.8:local`) |
+| `make swarm` | Swarm sanity (deploy stack, wait, cleanup); uses `IMAGE`; run after `make ci` on main/nightly |
+| `make cst` | Container Structure Tests |
+| `make security` | Trivy (CRITICAL) + Dockle |
+| `make smoke` | Single-container smoke test |
+| `make integration` | 3-node Galera + HAProxy; entrypoint runs all cases in order (01.all, 02.mixed, 03.restart) |
+| `make backup-s3` | S3 backup test (MinIO) |
 
-Tests live in numbered dirs: `00.*` = shared (lib, config), `01.*`–`04.*` = tests by importance. Each test dir has `entrypoint.sh` and assets in subdirs; tests with multiple scenarios use a `cases/` subdir (`00.*` = common, `01.*`, `02.*`, … = scenario scripts). **All tests use the locally built image** when run via `make` (default tag `galeriadb/11.8:local`). Run `make build` before running scripts directly.
+Tests live in `tests/00.*`–`05.*`; each test dir has `entrypoint.sh`. **All tests use the image in `IMAGE`** (default `galeriadb/11.8:local`). Run `make build` before running scripts directly.
 
 ```bash
 make build   # builds galeriadb/11.8:local
 ./tests/01.smoke/entrypoint.sh
-./tests/02.integration-compose/entrypoint.sh                    # all cases
-./tests/02.integration-compose/entrypoint.sh "" 02.mixed       # one case
+./tests/02.integration/entrypoint.sh                    # all cases (01.all → 02.mixed → 03.restart)
+./tests/02.integration/entrypoint.sh "" 02.mixed        # single case (dev)
 ./tests/03.backup-s3/entrypoint.sh
 ./tests/03.backup-s3/entrypoint.sh "" 01.backup-to-s3          # one case
 ./tests/04.cst/entrypoint.sh
+./tests/05.swarm/entrypoint.sh   # IMAGE=galeriadb/11.8:local (or other tag)
 # Or pass image: ./tests/01.smoke/entrypoint.sh galeriadb/11.8:latest
 ```
 
@@ -120,29 +131,13 @@ On failure, integration tests write diagnostics to `./artifacts/` (docker ps, co
 
 ## CI overview
 
-GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on:
+GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uses **one entry point:** `make ci` (run inside a dev container). Same suite locally: `make ci` or `make ci-docker`.
 
-- **Pull requests** and **push to main**
-- **Manual** (`workflow_dispatch`)
-- **Nightly** (schedule)
+- **Triggers:** pull requests, push to main, manual, nightly.
+- **Image under test:** tagged with commit SHA (`galeriadb/11.8:sha-<sha>`), never `latest`, so the publish workflow cannot accidentally push an untested image.
+- **Jobs:** (1) **CI** — build dev image, run `make ci` in container; (2) **Swarm** — on main/nightly only, run `make swarm` with the same SHA-tagged image.
 
-**Layers:**
-
-| Layer | PR / main | Nightly |
-|-------|-----------|---------|
-| Lint | hadolint, shellcheck, shfmt | same |
-| Build | Build image (BuildKit cache) | same |
-| Container Structure Test | Files, ports, entrypoint, commands | same |
-| Security | Trivy CRITICAL; on main also HIGH. Dockle (best practices) | same |
-| Smoke | One container, readiness, `SELECT 1` | same |
-| Integration | 3 nodes + HAProxy, replication, HAProxy endpoint | same |
-| Integration (mixed/restart) | — | mixed order + restart-node scenarios |
-| S3 backup (MinIO) | Hot backup to MinIO, verify object | same |
-| Swarm sanity | — | Single-node swarm, stack deploy |
-
-On **PR**: one integration scenario (all nodes up, replication + HAProxy). On **main** and **nightly**: all integration scenarios and optional Swarm sanity.
-
-**Troubleshooting CI:** If a job fails, open the run → **Summary** → **Artifacts**. Download `ci-diagnostics` for `docker-ps.txt`, `compose-logs.txt`, `inspect-*.json`, and network/volume lists from the failing step.
+**Troubleshooting:** On failure, open the run → **Summary** → **Artifacts** → `ci-diagnostics` (docker-ps, compose logs, inspect, network/volume lists).
 
 ## Repository structure
 
@@ -151,7 +146,7 @@ On **PR**: one integration scenario (all nodes up, replication + HAProxy). On **
 - `examples/docker-compose/` — sample Compose stack (three Galera nodes + HAProxy) for local testing.
 - `examples/docker-swarm/` — sample Swarm stack (global Galera + HAProxy + optional mysqld-exporter); see `examples/docker-swarm/README.md`.
 
-**Test layout:** `tests/00.lib/` (common.sh), `tests/00.config/` (dockle.yaml); then tests by importance: `01.smoke/`, `02.integration-compose/` (compose/, cases/01.all 02.mixed 03.restart), `03.backup-s3/` (cases/01.backup-to-s3 02.fail-without-s3-config), `04.cst/` (config/cst.yaml). Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/` with `00.*` for common and `01.*`, `02.*`, … for scenario scripts.
+**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/`, `02.integration/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
 
 ## License
 

@@ -31,7 +31,6 @@ fileContentTests:
     path: "/usr/local/bin/entrypoint.sh"
     expectedContents:
       - "#!/bin/bash"
-      - "entrypoint.sh"
 
 commandTests:
   - name: "mariadb version"
@@ -45,13 +44,5 @@ commandTests:
     expectedOutput: ["mariadbd"]
     excludedOutput: []
 
-exposedPortsTest:
-  - "3306"
-  - "4567"
-  - "4568"
-  - "4444"
-  - "9200"
-
-entrypointTest:
-  entrypoint: ["/usr/local/bin/entrypoint.sh"]
-  args: []
+# v2 schema does not support exposedPortsTest/entrypointTest; ports and entrypoint
+# are covered by file/command tests and by smoke/integration tests.

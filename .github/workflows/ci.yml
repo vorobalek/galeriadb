@@ -1,5 +1,6 @@
-# CI: lint, build, structure tests, security, smoke, integration.
-# Triggers: PR, push to main, manual, nightly.
+# CI: single entry point — make ci (and optionally make swarm).
+# Same suite locally: make ci or make ci-docker.
+# Image under test is tagged with commit SHA (never latest) to avoid publishing untested images.
 
 name: CI
 
@@ -10,57 +11,19 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    # Nightly at 02:00 UTC
     - cron: "0 2 * * *"
 
 env:
-  IMAGE_NAME: galeriadb/11.8
-  IMAGE_TAG: latest
-  REGISTRY_IMAGE: galeriadb/11.8:latest
+  IMAGE_BASE: galeriadb/11.8
+  # Test tag: commit SHA only (no latest). Publish workflow uses its own tag.
+  IMAGE_TAG: sha-${{ github.sha }}
 
 jobs:
-  lint:
-    name: Lint
+  ci:
+    name: CI (make ci)
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: docker/Dockerfile
-          failure-threshold: warning
-
-      - name: Set up ShellCheck
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y shellcheck
-
-      - name: Run ShellCheck
-        run: |
-          for f in $(find docker tests -name '*.sh' 2>/dev/null); do
-            echo "Linting $f"
-            shellcheck "$f" || exit 1
-          done
-
-      - name: Set up shfmt
-        run: |
-          go install mvdan.cc/sh/v3/cmd/shfmt@latest
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-
-      - name: Check shfmt
-        run: |
-          export PATH="$PATH:$(go env GOPATH)/bin"
-          for f in $(find docker tests -name '*.sh' 2>/dev/null); do
-            shfmt -d -i 2 -ci "$f" || exit 1
-          done
-
-  build-and-test:
-    name: Build & Test
-    runs-on: ubuntu-latest
-    needs: lint
     env:
-      IMAGE: galeriadb/11.8:latest
+      IMAGE: ${{ env.IMAGE_BASE }}:${{ env.IMAGE_TAG }}
       ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
     steps:
       - uses: actions/checkout@v4
@@ -68,87 +31,42 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build image
-        uses: docker/build-push-action@v6
+      - name: Build dev image
+        run: docker build -t galeriadb/dev:ci -f docker/Dockerfile.dev .
+
+      - name: Cache Trivy vulnerability DB
+        uses: actions/cache@v4
         with:
-          context: ./docker
-          file: ./docker/Dockerfile
-          push: false
-          load: true
-          tags: ${{ env.IMAGE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          path: .cache/trivy
+          key: trivy-db-${{ runner.os }}
+          restore-keys: trivy-db-
 
-      - name: Install Container Structure Test
+      - name: Run all tests (single entry point)
         run: |
-          curl -sSfL "https://github.com/GoogleContainerTools/container-structure-test/releases/latest/download/container-structure-test-linux-amd64" -o cst
-          chmod +x cst
-          sudo mv cst /usr/local/bin/container-structure-test
-
-      - name: Container Structure Test
-        run: ./tests/04.cst/entrypoint.sh ${{ env.IMAGE }}
-
-      - name: Trivy (CRITICAL)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.IMAGE }}
-          format: 'table'
-          exit-code: '1'
-          severity: 'CRITICAL'
-
-      - name: Trivy (HIGH on main/nightly)
-        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.IMAGE }}
-          format: 'table'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
-
-      - name: Dockle
-        uses: goodwithtech/dockle-action@v0.4.14
-        with:
-          image: ${{ env.IMAGE }}
-          exit-code: '1'
-        continue-on-error: true
-
-      - name: Smoke test
-        run: ./tests/01.smoke/entrypoint.sh ${{ env.IMAGE }}
-
-      - name: Integration test (all)
-        run: |
-          export COMPOSE_IMAGE=${{ env.IMAGE }}
-          ./tests/02.integration-compose/entrypoint.sh ${{ env.IMAGE }}
-
-      - name: Integration test (mixed order)
-        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
-        run: |
-          export COMPOSE_IMAGE=${{ env.IMAGE }}
-          export INTEGRATION_SCENARIO=mixed
-          ./tests/02.integration-compose/entrypoint.sh ${{ env.IMAGE }}
-
-      - name: Integration test (restart node)
-        if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
-        run: |
-          export COMPOSE_IMAGE=${{ env.IMAGE }}
-          export INTEGRATION_SCENARIO=restart
-          ./tests/02.integration-compose/entrypoint.sh ${{ env.IMAGE }}
-
-      - name: S3 backup test (MinIO)
-        run: ./tests/03.backup-s3/entrypoint.sh ${{ env.IMAGE }}
+          mkdir -p .cache/trivy
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${{ github.workspace }}/.cache/trivy:/root/.cache/trivy" \
+            -w /workspace \
+            -e IMAGE="${{ env.IMAGE }}" \
+            -e ARTIFACTS_DIR="${{ env.ARTIFACTS_DIR }}" \
+            -e HOST_WORKSPACE="${{ github.workspace }}" \
+            galeriadb/dev:ci \
+            make ci
 
       - name: Collect diagnostics on failure
         if: failure()
         run: |
-          mkdir -p ${{ env.ARTIFACTS_DIR }}
-          docker ps -a > ${{ env.ARTIFACTS_DIR }}/docker-ps.txt 2>&1 || true
-          docker network ls > ${{ env.ARTIFACTS_DIR }}/docker-network-ls.txt 2>&1 || true
-          docker volume ls > ${{ env.ARTIFACTS_DIR }}/docker-volume-ls.txt 2>&1 || true
-          docker compose -f tests/02.integration-compose/compose/compose.test.yml -p galeriadb-test logs --no-color > ${{ env.ARTIFACTS_DIR }}/compose-logs.txt 2>&1 || true
-          for cid in $(docker compose -f tests/02.integration-compose/compose/compose.test.yml -p galeriadb-test ps -aq 2>/dev/null || true); do
+          mkdir -p "${{ env.ARTIFACTS_DIR }}"
+          docker ps -a > "${{ env.ARTIFACTS_DIR }}/docker-ps.txt" 2>&1 || true
+          docker network ls > "${{ env.ARTIFACTS_DIR }}/docker-network-ls.txt" 2>&1 || true
+          docker volume ls > "${{ env.ARTIFACTS_DIR }}/docker-volume-ls.txt" 2>&1 || true
+          docker compose -f tests/02.integration/compose/compose.test.yml -p galeriadb-test logs --no-color > "${{ env.ARTIFACTS_DIR }}/compose-logs.txt" 2>&1 || true
+          for cid in $(docker compose -f tests/02.integration/compose/compose.test.yml -p galeriadb-test ps -aq 2>/dev/null || true); do
             [ -z "$cid" ] && continue
             name=$(docker inspect -f '{{.Name}}' "$cid" 2>/dev/null | tr -d '/')
-            docker inspect "$cid" > ${{ env.ARTIFACTS_DIR }}/inspect-"$name".json 2>&1 || true
+            docker inspect "$cid" > "${{ env.ARTIFACTS_DIR }}/inspect-$name.json" 2>&1 || true
           done
 
       - name: Upload artifacts on failure
@@ -159,46 +77,15 @@ jobs:
           path: ${{ env.ARTIFACTS_DIR }}
           if-no-files-found: ignore
 
-  swarm-sanity:
-    name: Swarm sanity
+  swarm:
+    name: Swarm (make swarm)
     runs-on: ubuntu-latest
-    needs: build-and-test
+    needs: ci
     if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
+    env:
+      IMAGE: ${{ env.IMAGE_BASE }}:${{ env.IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build image
-        run: docker build -t galeriadb/11.8:latest -f docker/Dockerfile docker/
-
-      - name: Prepare stack dirs and config
-        run: |
-          sudo mkdir -p /data/shared/mariadb /data/mariadb
-          sudo cp examples/docker-swarm/haproxy.cfg /data/shared/mariadb/
-          NODE=$(docker node ls -q 2>/dev/null | head -1)
-          if [ -z "$NODE" ]; then
-            docker swarm init
-            NODE=$(docker node ls -q | head -1)
-          fi
-          NODE_HOSTNAME=$(docker node inspect "$NODE" --format '{{.Description.Hostname}}')
-          sudo mkdir -p /data/mariadb/"$NODE_HOSTNAME"
-          sudo chmod -R 777 /data/mariadb /data/shared/mariadb
-          cp examples/docker-swarm/stack.env.example examples/docker-swarm/stack.env 2>/dev/null || true
-          echo 'GALERIA_ROOT_PASSWORD=secret' > examples/docker-swarm/stack.env
-          echo 'GALERIA_PEERS=tasks.galera' >> examples/docker-swarm/stack.env
-          echo 'GALERIA_CLUSTER_NAME=galera_cluster' >> examples/docker-swarm/stack.env
-          echo 'GALERIA_BOOTSTRAP_CANDIDATE=galera-'$NODE_HOSTNAME >> examples/docker-swarm/stack.env
-
-      - name: Deploy stack
-        run: |
-          cd examples/docker-swarm
-          docker stack deploy -c docker-compose.yml mariadb
-          sleep 90
-          docker service ls
-          docker service ps mariadb_galera mariadb_hamariadb --no-trunc 2>/dev/null || true
-
-      - name: Swarm cleanup
-        if: always()
-        run: |
-          docker stack rm mariadb 2>/dev/null || true
-          sleep 15
-          docker swarm leave --force 2>/dev/null || true
+      - name: Run swarm sanity
+        run: make swarm

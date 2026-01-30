@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Case: run galera-backup.sh without S3 config; expect error message.
 # Sourced from entrypoint after 01.backup-to-s3 (same GALERA_NAME container). Uses GALERA_NAME, PASS from 00.common.
 

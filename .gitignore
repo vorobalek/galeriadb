@@ -21,3 +21,6 @@ temp/
 
 # Test diagnostics
 artifacts/
+
+# Trivy vuln DB cache (CI / local security target)
+.cache/

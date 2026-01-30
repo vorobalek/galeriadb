@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # Common vars and helpers for backup-s3 cases. Source from entrypoint.
 # Expects: IMAGE, SCRIPT_DIR (entrypoint sets these). Sets: NET_NAME, MINIO_NAME, GALERA_NAME, PASS, S3_BUCKET, S3_PREFIX, MINIO_ACCESS, MINIO_SECRET.
 
@@ -26,7 +27,23 @@ start_minio() {
     -e MINIO_ROOT_USER="$MINIO_ACCESS" \
     -e MINIO_ROOT_PASSWORD="$MINIO_SECRET" \
     minio/minio:latest server /data
-  sleep 5
+  wait_minio_ready
+}
+
+# Poll until MinIO responds (no fixed sleep).
+wait_minio_ready() {
+  local elapsed=0
+  log "Waiting for MinIO (up to 30s)..."
+  while [ "$elapsed" -lt 30 ]; do
+    if docker run --rm --network "$NET_NAME" curlimages/curl:latest -sf --max-time 2 "http://${MINIO_NAME}:9000/minio/health/live" >/dev/null 2>&1; then
+      log "MinIO ready"
+      return 0
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  log "MinIO did not become ready"
+  return 1
 }
 
 start_galera() {
@@ -54,8 +71,8 @@ wait_mysql_ready() {
     if docker exec "$GALERA_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/dev/null; then
       return 0
     fi
-    sleep 2
-    elapsed=$((elapsed + 2))
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
   log "MySQL did not become ready"
   return 1
@@ -69,8 +86,8 @@ wait_synced() {
     if [ "$state" = "Synced" ]; then
       return 0
     fi
-    sleep 2
-    elapsed=$((elapsed + 2))
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
   log "Node did not reach Synced (got $state)"
   return 1

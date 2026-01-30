@@ -6,11 +6,14 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=../00.lib/common.sh
+# shellcheck source=../00.lib/common.sh disable=SC1091
 source "${SCRIPT_DIR}/../00.lib/common.sh"
 
 IMAGE="${1:-galeriadb/11.8:local}"
-docker image inspect "$IMAGE" >/dev/null 2>&1 || { log "Image $IMAGE not found. Run 'make build' first."; exit 1; }
+docker image inspect "$IMAGE" >/dev/null 2>&1 || {
+  log "Image $IMAGE not found. Run 'make build' first."
+  exit 1
+}
 CONTAINER_NAME="galeriadb-smoke-$$"
 GALERIA_ROOT_PASSWORD="${GALERIA_ROOT_PASSWORD:-secret}"
 
@@ -31,17 +34,17 @@ docker run -d \
   -e GALERIA_BOOTSTRAP_CANDIDATE=galera1 \
   "$IMAGE"
 
-log "Waiting for MySQL readiness (up to 120s) via docker exec..."
+log "Waiting for MySQL readiness (up to 60s) via docker exec..."
 elapsed=0
-while [ "$elapsed" -lt 120 ]; do
+while [ "$elapsed" -lt 60 ]; do
   if docker exec "$CONTAINER_NAME" mariadb -u root -p"$GALERIA_ROOT_PASSWORD" -e "SELECT 1" &>/dev/null; then
     break
   fi
-  sleep 2
-  elapsed=$((elapsed + 2))
+  sleep 1
+  elapsed=$((elapsed + 1))
 done
 if ! docker exec "$CONTAINER_NAME" mariadb -u root -p"$GALERIA_ROOT_PASSWORD" -e "SELECT 1" &>/dev/null; then
-  log "MySQL did not become ready within 120s"
+  log "MySQL did not become ready within 60s"
   docker logs "$CONTAINER_NAME" 2>&1 | tail -100
   exit 1
 fi

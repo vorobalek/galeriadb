@@ -5,8 +5,8 @@ log() { echo "[$(date -Is)] $*"; }
 
 : "${GALERIA_PEERS:?GALERIA_PEERS is required (e.g. tasks.galera)}"
 : "${GALERIA_CLUSTER_NAME:=galera_cluster}"
-: "${GALERIA_DISCOVERY_TIMEOUT:=25}"
-: "${GALERIA_DISCOVERY_INTERVAL:=2}"
+: "${GALERIA_DISCOVERY_TIMEOUT:=5}"
+: "${GALERIA_DISCOVERY_INTERVAL:=1}"
 : "${GALERIA_BOOTSTRAP_CANDIDATE:=galera-node-a}"
 
 export MYSQL_PWD="${GALERIA_ROOT_PASSWORD:-mariadb}"

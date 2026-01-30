@@ -43,11 +43,11 @@ PEER_NAMES="${GALERIA_PEERS}"
 HOSTNAME="$(hostname)"
 log "HOSTNAME=$HOSTNAME peers=$PEER_NAMES candidate=$GALERIA_BOOTSTRAP_CANDIDATE"
 
-deadline=$(( $(date +%s) + GALERIA_DISCOVERY_TIMEOUT ))
+deadline=$(($(date +%s) + GALERIA_DISCOVERY_TIMEOUT))
 SYNCED_PEER_IP=""
 IPS=""
 
-while [ $(date +%s) -lt "$deadline" ]; do
+while [ "$(date +%s)" -lt "$deadline" ]; do
   IPS="$(resolve_peers_ips || true)"
   if [ -n "$IPS" ]; then
     if SYNCED_PEER_IP="$(echo "$IPS" | find_synced_peer 2>/dev/null)"; then

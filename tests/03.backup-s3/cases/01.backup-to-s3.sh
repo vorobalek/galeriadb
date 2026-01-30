@@ -1,11 +1,18 @@
+#!/usr/bin/env bash
 # Case: run galera-backup.sh and verify .tar.gz object in S3.
 # Sourced from entrypoint. Uses 00.common.sh (start_minio, start_galera, wait_mysql_ready, wait_synced, GALERA_NAME, PASS, S3_BUCKET, S3_PREFIX).
 
 log "Case 01.backup-to-s3: backup and verify in S3"
 start_minio
 start_galera
-wait_mysql_ready || { docker logs "$GALERA_NAME" 2>&1 | tail -80; exit 1; }
-wait_synced || { docker logs "$GALERA_NAME" 2>&1 | tail -50; exit 1; }
+wait_mysql_ready || {
+  docker logs "$GALERA_NAME" 2>&1 | tail -80
+  exit 1
+}
+wait_synced || {
+  docker logs "$GALERA_NAME" 2>&1 | tail -50
+  exit 1
+}
 
 log "Creating S3 bucket..."
 docker exec "$GALERA_NAME" aws s3 mb "s3://${S3_BUCKET}" 2>/dev/null || true

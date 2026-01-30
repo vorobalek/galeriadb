@@ -1,0 +1,3 @@
+# Used when building the main image: context = docker/
+# Exclude dev Dockerfile (not needed in app image)
+Dockerfile.dev

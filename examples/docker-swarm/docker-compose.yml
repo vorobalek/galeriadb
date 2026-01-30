@@ -38,7 +38,7 @@ services:
       - internal-mariadb-lan
 
   galera:
-    image: galeriadb/11.8:latest
+    image: ${IMAGE:-galeriadb/11.8:latest}
     hostname: galera-{{.Node.Hostname}}
     deploy:
       mode: global

@@ -20,12 +20,15 @@ ENV_FILE="/run/galera-backup.env"
   [ -n "${AWS_DEFAULT_REGION:-}" ] && echo "export AWS_DEFAULT_REGION=\"${AWS_DEFAULT_REGION}\""
   [ -n "${AWS_REGION:-}" ] && echo "export AWS_REGION=\"${AWS_REGION}\""
   [ -n "${AWS_ENDPOINT_URL:-}" ] && echo "export AWS_ENDPOINT_URL=\"${AWS_ENDPOINT_URL}\""
-} > "$ENV_FILE"
+} >"$ENV_FILE"
 chmod 600 "$ENV_FILE"
 
 CRON_LINE="${GALERIA_BACKUP_SCHEDULE} . ${ENV_FILE} && /usr/local/bin/galera-backup.sh >> /var/log/galera-backup.log 2>&1"
 if [ -n "${GALERIA_CRONTAB:-}" ]; then
-  ( echo "$CRON_LINE"; echo "$GALERIA_CRONTAB" ) | crontab -
+  (
+    echo "$CRON_LINE"
+    echo "$GALERIA_CRONTAB"
+  ) | crontab -
 else
   echo "$CRON_LINE" | crontab -
 fi

@@ -11,14 +11,14 @@ log() { echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] $*"; }
 # Wait until HTTP endpoint returns 200. Usage: wait_http_ok URL timeout_sec
 wait_http_ok() {
   local url="$1"
-  local timeout="${2:-60}"
+  local timeout="${2:-30}"
   local elapsed=0
   while [ "$elapsed" -lt "$timeout" ]; do
     if curl -sf --max-time 5 "$url" >/dev/null 2>&1; then
       return 0
     fi
-    sleep 2
-    elapsed=$((elapsed + 2))
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
   log "wait_http_ok: $url did not return 200 within ${timeout}s"
   return 1
@@ -30,14 +30,14 @@ wait_mysql() {
   local port="${2:-3306}"
   local user="$3"
   local pass="$4"
-  local timeout="${5:-120}"
+  local timeout="${5:-60}"
   local elapsed=0
   while [ "$elapsed" -lt "$timeout" ]; do
     if mariadb -h "$host" -P "$port" -u "$user" -p"$pass" -e "SELECT 1" &>/dev/null; then
       return 0
     fi
-    sleep 2
-    elapsed=$((elapsed + 2))
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
   log "wait_mysql: $host:$port did not become ready within ${timeout}s"
   return 1

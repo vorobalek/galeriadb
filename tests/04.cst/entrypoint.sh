@@ -9,7 +9,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${SCRIPT_DIR}/config/cst.yaml"
 IMAGE="${1:-galeriadb/11.8:local}"
 
-docker image inspect "$IMAGE" >/dev/null 2>&1 || { echo "Image $IMAGE not found. Run 'make build' first." >&2; exit 1; }
+docker image inspect "$IMAGE" >/dev/null 2>&1 || {
+  echo "Image $IMAGE not found. Run 'make build' first." >&2
+  exit 1
+}
 
 if [ ! -f "$CONFIG" ]; then
   echo "CST config not found: $CONFIG" >&2

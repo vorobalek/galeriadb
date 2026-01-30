@@ -8,15 +8,15 @@ MYSQL_USER="${MYSQL_CHECK_USER:-root}"
 MYSQL_PWD="${MYSQL_PWD:-${GALERIA_ROOT_PASSWORD:-}}"
 
 response() {
-    local code="$1"
-    local body="${2:-}"
-    printf 'HTTP/1.0 %s\r\nContent-Length: %s\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n%s' \
-        "$code" "${#body}" "$body"
+  local code="$1"
+  local body="${2:-}"
+  printf 'HTTP/1.0 %s\r\nContent-Length: %s\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n%s' \
+    "$code" "${#body}" "$body"
 }
 
 while IFS= read -r -t 0.2 line 2>/dev/null; do
-    line="${line%$'\r'}"
-    [ -z "$line" ] && break
+  line="${line%$'\r'}"
+  [ -z "$line" ] && break
 done
 
 result="$(
@@ -34,7 +34,7 @@ wsrep_ready="$(awk '$1=="wsrep_ready"{print $2}' <<<"$result" | head -n1)"
 wsrep_state="$(awk '$1=="wsrep_local_state_comment"{print $2}' <<<"$result" | head -n1)"
 
 if [ "$wsrep_ready" = "ON" ] && [ "$wsrep_state" = "Synced" ]; then
-    response "200 OK" "ready"
+  response "200 OK" "ready"
 else
-    response "503 Service Unavailable" "not ready"
+  response "503 Service Unavailable" "not ready"
 fi
