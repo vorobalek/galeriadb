@@ -3,7 +3,7 @@ name: Build and push Docker image
 on:
   push:
     branches:
-      - 11.8
+      - main
   workflow_dispatch:
 
 env:

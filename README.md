@@ -169,9 +169,9 @@ Tests live in `tests/00.*` through `tests/05.*`. Each test directory has its own
 
 ## CI and publishing
 
-GitHub Actions runs `make ci` in a dev container on pull requests to the `11.8` branch and on manual runs. The Swarm job runs on the same triggers after CI passes (unless `[skip-ci]` is set).
+GitHub Actions runs `make ci` in a dev container on pull requests to the `main` branch and on manual runs. The Swarm job runs on the same triggers after CI passes (unless `[skip-ci]` is set).
 
-Images are built and published via `.github/workflows/docker-publish.yml` on push to `11.8` and on manual runs (skips when `[skip-ci]` is in the head commit message). Required secrets: `DOCKER_USERNAME`, `DOCKER_PASSWORD`.
+Images are built and published via `.github/workflows/docker-publish.yml` on push to `main` and on manual runs (skips when `[skip-ci]` is in the head commit message). Required secrets: `DOCKER_USERNAME`, `DOCKER_PASSWORD`.
 
 ## Repository layout
 
