@@ -16,6 +16,27 @@ fileExistenceTests:
   - name: "entrypoint write-config stage exists"
     path: "/usr/local/bin/entrypoint.d/20-write-config.sh"
     shouldExist: true
+  - name: "entrypoint healthcheck stage exists"
+    path: "/usr/local/bin/entrypoint.d/30-healthcheck.sh"
+    shouldExist: true
+  - name: "entrypoint init-or-clone stage exists"
+    path: "/usr/local/bin/entrypoint.d/40-init-or-clone.sh"
+    shouldExist: true
+  - name: "entrypoint safe-to-bootstrap stage exists"
+    path: "/usr/local/bin/entrypoint.d/50-safe-to-bootstrap.sh"
+    shouldExist: true
+  - name: "entrypoint start-mariadb stage exists"
+    path: "/usr/local/bin/entrypoint.d/60-start-mariadb.sh"
+    shouldExist: true
+  - name: "entrypoint wait-ready stage exists"
+    path: "/usr/local/bin/entrypoint.d/70-wait-ready.sh"
+    shouldExist: true
+  - name: "entrypoint ensure-root stage exists"
+    path: "/usr/local/bin/entrypoint.d/80-ensure-root.sh"
+    shouldExist: true
+  - name: "entrypoint backup-cron stage exists"
+    path: "/usr/local/bin/entrypoint.d/90-backup-cron.sh"
+    shouldExist: true
   - name: "galera-healthcheck exists"
     path: "/usr/local/bin/galera-healthcheck.sh"
     shouldExist: true
