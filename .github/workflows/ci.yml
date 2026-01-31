@@ -1,7 +1,3 @@
-# CI: single entry point — make ci (and optionally make swarm).
-# Same suite locally: make ci or make ci-docker.
-# Image under test is tagged with commit SHA (never latest) to avoid publishing untested images.
-
 name: CI
 
 on:
@@ -10,9 +6,48 @@ on:
   workflow_dispatch:
 
 jobs:
+  gate:
+    name: Skip gate
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - id: check
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+
+          # Manual runs are never blocked
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          last_commit_msg="$(git log -1 --pretty=%B 2>/dev/null || true)"
+
+          haystack="${PR_TITLE:-}
+          ${PR_BODY:-}
+          ${last_commit_msg}"
+
+                    if echo "$haystack" | grep -Fq "[skip-ci]"; then
+                      echo "skip=true" >> "$GITHUB_OUTPUT"
+                    else
+                      echo "skip=false" >> "$GITHUB_OUTPUT"
+                    fi
+
   ci:
     name: CI (make ci)
     runs-on: ubuntu-latest
+    needs: gate
+    if: github.event_name == 'workflow_dispatch' || needs.gate.outputs.skip != 'true'
     env:
       # Test tag: commit SHA only (no latest). Publish workflow uses its own tag.
       IMAGE: galeriadb/11.8:sha-${{ github.sha }}
@@ -76,7 +111,8 @@ jobs:
   swarm:
     name: Swarm (make swarm)
     runs-on: ubuntu-latest
-    needs: ci
+    needs: [gate, ci]
+    if: github.event_name == 'workflow_dispatch' || needs.gate.outputs.skip != 'true'
     env:
       IMAGE: galeriadb/11.8:sha-${{ github.sha }}
     steps:

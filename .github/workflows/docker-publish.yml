@@ -1,6 +1,3 @@
-# Publish image to registry. CI tests with tag sha-<commit> (never latest);
-# this workflow builds and pushes with its own tag (:latest), so only tested
-# code can be published after CI passes.
 name: Build and push Docker image
 
 on:
@@ -16,6 +13,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message || '', '[skip-ci]')
     steps:
       - name: Checkout
         uses: actions/checkout@v6
