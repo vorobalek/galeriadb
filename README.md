@@ -125,7 +125,7 @@ Restore runs only when `/var/lib/mysql` is empty on container startup and clone 
 
 ### Auto-migration
 
-When a version upgrade is detected, the entrypoint runs `mariadb-upgrade` automatically. If S3 backup settings are configured, a hot backup is taken and uploaded **before** the migration runs.
+When a version upgrade is detected, the entrypoint runs `mariadb-upgrade` automatically. If S3 backup settings are configured, a hot backup is taken and uploaded **before** the migration runs. If backup is configured but the pre-upgrade backup fails or the node does not reach Synced within the timeout, the container exits and migration is not performed.
 
 Optional:
 
@@ -172,7 +172,7 @@ Targets:
 | `make build` | build image (`galeriadb/12.1:local`) |
 | `make cst` | Container Structure Tests |
 | `make security` | Trivy (CRITICAL) + Dockle |
-| `make smoke` | required env validation + single-node startup |
+| `make smoke` | required env validation, single-node startup, graceful shutdown, Docker HEALTHCHECK |
 | `make deploy` | 3-node Galera + HAProxy scenarios |
 | `make backup-s3` | S3 backup tests (MinIO) |
 | `make swarm` | Swarm sanity (run after `make ci`) |

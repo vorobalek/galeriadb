@@ -30,4 +30,13 @@ run_stage "85-auto-migrate.sh"
 run_stage "90-backup-cron.sh"
 
 : "${MYSQLD_PID:?}"
+
+shutdown() {
+  log "Received signal, shutting down MariaDB..."
+  kill -TERM "$MYSQLD_PID" 2>/dev/null || true
+  wait "$MYSQLD_PID" 2>/dev/null || true
+  exit 0
+}
+trap shutdown SIGTERM SIGINT
+
 wait "$MYSQLD_PID"
