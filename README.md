@@ -67,7 +67,10 @@ Optional:
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `MYSQL_CHECK_USER` | MySQL user for health check queries. | `root` |
+| `GALERIA_HEALTHCHECK_USER` | MySQL user for health check queries. | `root` |
+| `GALERIA_HEALTHCHECK_PASSWORD` | Password for health check user. | `GALERIA_ROOT_PASSWORD` |
+
+If both `GALERIA_HEALTHCHECK_USER` and `GALERIA_HEALTHCHECK_PASSWORD` are set and the user is not `root`, the entrypoint will create/update that user and grant the minimal permissions required for the check.
 
 ### Backups to S3
 
