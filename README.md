@@ -9,6 +9,8 @@ Docker image for MariaDB + Galera Cluster. Designed for Compose and Swarm, suppo
 - Docker Hub: `galeriadb/12.1`
 - Tag: `latest` (image name encodes MariaDB version, e.g. `galeriadb/12.1:latest`)
 
+Branch `main` tracks MariaDB 12.1. Older versions are available in versioned branches (e.g. [11.8](https://github.com/vorobalek/galeriadb/tree/11.8) for MariaDB 11.8).
+
 ## Features
 
 - Cluster discovery from `GALERIA_PEERS` with bootstrap candidate logic.
