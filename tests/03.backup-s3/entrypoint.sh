@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# S3 backup test: MinIO + Galera, backup to S3. Runs cases from cases/ (01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old, 04.cron-backup).
-# Usage: ./tests/03.backup-s3/entrypoint.sh [IMAGE] [CASE]
-#   CASE: 01.backup-to-s3 | 02.fail-without-s3-config | 03.retention-deletes-old | 04.cron-backup (default: run all in order)
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
+# S3 backup test runner.
 
 set -euo pipefail
 
@@ -20,8 +17,8 @@ docker image inspect "$IMAGE" >/dev/null 2>&1 || {
 
 log "S3 backup test: image=$IMAGE"
 
-# shellcheck source=cases/00.common.sh disable=SC1091
-source "${CASES_DIR}/00.common.sh"
+# shellcheck source=lib.sh disable=SC1091
+source "${SCRIPT_DIR}/lib.sh"
 cleanup() { cleanup_backup_s3; }
 trap cleanup EXIT
 
@@ -32,7 +29,7 @@ if [ -n "$CASE_ARG" ]; then
       source "${CASES_DIR}/01.backup-to-s3.sh"
       ;;
     02.fail-without-s3-config)
-      # 02 needs galera running; start minimal stack first
+      # Case 02 expects a running stack.
       start_minio
       start_galera
       wait_mysql_ready || {
@@ -54,8 +51,16 @@ if [ -n "$CASE_ARG" ]; then
       # shellcheck disable=SC1091
       source "${CASES_DIR}/04.cron-backup.sh"
       ;;
+    05.clone-on-empty)
+      # shellcheck disable=SC1091
+      source "${CASES_DIR}/05.clone-on-empty.sh"
+      ;;
+    06.cluster-restore)
+      # shellcheck disable=SC1091
+      source "${CASES_DIR}/06.cluster-restore.sh"
+      ;;
     *)
-      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old, 04.cron-backup)"
+      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old, 04.cron-backup, 05.clone-on-empty, 06.cluster-restore)"
       exit 1
       ;;
   esac
@@ -68,6 +73,10 @@ else
   source "${CASES_DIR}/03.retention-deletes-old.sh"
   # shellcheck disable=SC1091
   source "${CASES_DIR}/04.cron-backup.sh"
+  # shellcheck disable=SC1091
+  source "${CASES_DIR}/05.clone-on-empty.sh"
+  # shellcheck disable=SC1091
+  source "${CASES_DIR}/06.cluster-restore.sh"
 fi
 
 log "S3 backup test passed."

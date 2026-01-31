@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
-# Smoke test: required env validation + one-node startup. Runs cases from cases/.
-# Usage: ./tests/01.smoke/entrypoint.sh [IMAGE] [CASE]
-#   CASE: 01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate (default: run all in order)
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
+# Smoke test runner.
 
 set -euo pipefail
 
@@ -28,8 +25,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# shellcheck source=cases/00.common.sh disable=SC1091
-source "${CASES_DIR}/00.common.sh"
+# shellcheck source=lib.sh disable=SC1091
+source "${SCRIPT_DIR}/lib.sh"
 
 run_case() {
   local name="$1"
@@ -39,11 +36,11 @@ run_case() {
 
 if [ -n "$CASE_ARG" ]; then
   case "$CASE_ARG" in
-    01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate)
+    01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate | 05.healthcheck-user)
       run_case "$CASE_ARG"
       ;;
     *)
-      log "Unknown case: $CASE_ARG. Use 01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate"
+      log "Unknown case: $CASE_ARG. Use 01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate | 05.healthcheck-user"
       exit 1
       ;;
   esac
@@ -53,5 +50,6 @@ else
   run_case "02.missing-peers"
   run_case "03.missing-root-password"
   run_case "04.missing-bootstrap-candidate"
+  run_case "05.healthcheck-user"
   log "Smoke test passed (all cases)."
 fi

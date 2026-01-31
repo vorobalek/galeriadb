@@ -1,6 +1,3 @@
-# Test stack: 3 Galera nodes + HAProxy. Used by 02.deploy entrypoint.
-# Image is passed via COMPOSE_IMAGE or defaults to galeriadb/11.8:local (run 'make build' first).
-
 services:
   galera1:
     image: ${COMPOSE_IMAGE:-galeriadb/11.8:local}

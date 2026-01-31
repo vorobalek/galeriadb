@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Case: start cluster, init, create data; stop all nodes; start again — cluster must reassemble and data persist.
-# Sourced from entrypoint. Uses COMPOSE_FILE, PROJECT_NAME, PASS from 00.common.sh.
-
 log "Case 04.full-restart: full stop/start, cluster reassembly"
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down -v --remove-orphans 2>/dev/null || true
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d

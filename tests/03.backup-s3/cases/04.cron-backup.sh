@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Case: backup actually triggered by cron (* * * * *). Waits for cron to run and verifies backup appears in S3.
-# Sourced from entrypoint. Uses 00.common.sh (start_minio, start_galera, wait_mysql_ready, wait_synced, GALERA_NAME, S3_BUCKET, S3_PREFIX).
-
 log "Case 04.cron-backup: wait for cron (* * * * *) to run backup and verify S3"
 docker rm -f "$GALERA_NAME" 2>/dev/null || true
 docker rm -f "$MINIO_NAME" 2>/dev/null || true

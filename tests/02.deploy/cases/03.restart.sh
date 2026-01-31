@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Case: start all, replication + HAProxy, then restart galera2 and verify cluster.
-# Sourced from entrypoint. Uses COMPOSE_FILE, PROJECT_NAME, PASS from 00.common.sh.
-
 log "Case 03.restart: restart node and verify"
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down -v --remove-orphans 2>/dev/null || true
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d

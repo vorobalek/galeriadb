@@ -1,17 +1,41 @@
-# Container Structure Tests for galeriadb image.
-# Run via: tests/04.cst/entrypoint.sh [IMAGE]
-
 schemaVersion: "2.0.0"
 
 fileExistenceTests:
   - name: "entrypoint exists"
     path: "/usr/local/bin/entrypoint.sh"
     shouldExist: true
-  - name: "galera-discovery exists"
-    path: "/usr/local/bin/galera-discovery.sh"
+  - name: "entrypoint lib exists"
+    path: "/usr/local/bin/entrypoint-lib.sh"
     shouldExist: true
-  - name: "galera-write-config exists"
-    path: "/usr/local/bin/galera-write-config.sh"
+  - name: "entrypoint stages exist"
+    path: "/usr/local/bin/entrypoint.d/00-env.sh"
+    shouldExist: true
+  - name: "entrypoint discovery stage exists"
+    path: "/usr/local/bin/entrypoint.d/10-discovery.sh"
+    shouldExist: true
+  - name: "entrypoint write-config stage exists"
+    path: "/usr/local/bin/entrypoint.d/20-write-config.sh"
+    shouldExist: true
+  - name: "entrypoint healthcheck stage exists"
+    path: "/usr/local/bin/entrypoint.d/30-healthcheck.sh"
+    shouldExist: true
+  - name: "entrypoint init-or-clone stage exists"
+    path: "/usr/local/bin/entrypoint.d/40-init-or-clone.sh"
+    shouldExist: true
+  - name: "entrypoint safe-to-bootstrap stage exists"
+    path: "/usr/local/bin/entrypoint.d/50-safe-to-bootstrap.sh"
+    shouldExist: true
+  - name: "entrypoint start-mariadb stage exists"
+    path: "/usr/local/bin/entrypoint.d/60-start-mariadb.sh"
+    shouldExist: true
+  - name: "entrypoint wait-ready stage exists"
+    path: "/usr/local/bin/entrypoint.d/70-wait-ready.sh"
+    shouldExist: true
+  - name: "entrypoint ensure-root stage exists"
+    path: "/usr/local/bin/entrypoint.d/80-ensure-root.sh"
+    shouldExist: true
+  - name: "entrypoint backup-cron stage exists"
+    path: "/usr/local/bin/entrypoint.d/90-backup-cron.sh"
     shouldExist: true
   - name: "galera-healthcheck exists"
     path: "/usr/local/bin/galera-healthcheck.sh"
@@ -19,8 +43,8 @@ fileExistenceTests:
   - name: "galera-backup exists"
     path: "/usr/local/bin/galera-backup.sh"
     shouldExist: true
-  - name: "galera-backup-setup exists"
-    path: "/usr/local/bin/galera-backup-setup.sh"
+  - name: "galera-clone exists"
+    path: "/usr/local/bin/galera-clone.sh"
     shouldExist: true
   - name: "galera config template exists"
     path: "/etc/mysql/conf.d/galera.cnf.template"
@@ -43,6 +67,3 @@ commandTests:
     args: ["--version"]
     expectedOutput: ["mariadbd"]
     excludedOutput: []
-
-# v2 schema does not support exposedPortsTest/entrypointTest; ports and entrypoint
-# are covered by file/command tests and by smoke/deploy tests.

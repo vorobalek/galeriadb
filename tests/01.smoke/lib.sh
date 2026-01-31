@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
-# Common for smoke cases. Expects: IMAGE (set by entrypoint).
-# Optional env: GALERIA_ROOT_PASSWORD (used in 01.all-required; default secret for tests).
+# Smoke test helpers.
 
 export PASS="${GALERIA_ROOT_PASSWORD:-secret}"
 
-# Run image with given env; expect exit code 1 and stderr containing "Required environment variable VAR_NAME is not set".
-# Usage: expect_required_var_fail var_name [extra_docker_run_args...]
-# Example: expect_required_var_fail GALERIA_PEERS -e GALERIA_ROOT_PASSWORD=secret -e GALERIA_BOOTSTRAP_CANDIDATE=galera1
-# Pass env with -e; omit the variable under test.
 expect_required_var_fail() {
   local var_name="$1"
   shift

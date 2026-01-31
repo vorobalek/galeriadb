@@ -1,165 +1,185 @@
 # galeriadb
 
-Docker image for **MariaDB + Galera Cluster**, suitable for Docker Compose and Docker Swarm. Supports arbitrary node startup order (bootstrap/join without `depends_on`), HAProxy health checks, and a single client endpoint.
+Docker image for MariaDB + Galera Cluster. Designed for Compose and Swarm, supports arbitrary node startup order, and exposes an HTTP health check for HAProxy.
 
 - [MariaDB Galera Cluster Guide](https://mariadb.com/docs/galera-cluster/galera-cluster-quickstart-guides/mariadb-galera-cluster-guide)
 
 ## Image
 
-- **Docker Hub:** `galeriadb/11.8`
-- **Tag:** `latest` (image name is the MariaDB version, e.g. `galeriadb/11.8:latest`)
+- Docker Hub: `galeriadb/11.8`
+- Tag: `latest` (image name encodes MariaDB version, e.g. `galeriadb/11.8:latest`)
 
-Built and published via [GitHub Actions](.github/workflows/docker-publish.yml) on push to `main`. Repository secrets required: `DOCKER_USERNAME`, `DOCKER_PASSWORD` (Docker Hub account used for publishing).
+## Features
 
-## Quick start (example)
+- Cluster discovery from `GALERIA_PEERS` with bootstrap candidate logic.
+- HAProxy-friendly health check on port 9200 (Synced + wsrep_ready=ON).
+- Hot backups to S3 with optional retention and cron scheduling.
+- Restore (clone) from S3 when the data directory is empty.
 
-**Docker Compose** — from the `examples/docker-compose/` directory:
+## Quick start
+
+From the example Compose stack:
 
 ```bash
 cd examples/docker-compose
 docker compose up -d
 ```
 
-Connect to the cluster via HAProxy on port **3306**:
-
-- **Host:** `localhost`
-- **Port:** `3306`
-- **User:** `root`
-- **Password:** `secret` (value of `GALERIA_ROOT_PASSWORD` in the example)
+Connect via HAProxy on port 3306:
 
 ```bash
 mariadb -h 127.0.0.1 -P 3306 -u root -psecret
 ```
 
-## Environment variables
+## Configuration
 
 ### Required
 
-The image **will not start** without these variables. If any is unset or empty, the container exits immediately with an error message (no hidden defaults).
+The container exits immediately if any required variable is missing or empty.
 
 | Variable | Description | Example |
-|----------|-------------|---------|
-| `GALERIA_PEERS` | Comma-separated peer list: Compose service names, Swarm task names (e.g. `tasks.galera`), or IPs/hostnames. Used as the only source for cluster member discovery. | `galera1,galera2,galera3` or `tasks.galera` or `10.0.0.1,10.0.0.2,10.0.0.3` |
-| `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user. Must be set explicitly; there is no default. | `secret` |
-| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that will bootstrap a new cluster when no existing cluster is found. Must match the hostname of one of your nodes (e.g. first node in Compose). | `galera1` or `galera-node-a` |
+| --- | --- | --- |
+| `GALERIA_PEERS` | Comma-separated peer list. Use Compose service names, Swarm task names (`tasks.galera`), or IPs/hostnames. | `galera1,galera2,galera3` / `tasks.galera` / `10.0.0.1,10.0.0.2` |
+| `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user (no default). | `secret` |
+| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that may bootstrap a new cluster when none is found. Must match one of your node hostnames. | `galera1` |
 
-### Cluster (optional)
+### Cluster and discovery
 
 | Variable | Description | Default |
-|----------|-------------|---------|
-| `GALERIA_CLUSTER_NAME` | Galera cluster identifier (`wsrep_cluster_name`). Nodes with the same name form one cluster; different names do not join. | `galera_cluster` |
-| `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to try resolving peers (Swarm/K8s: DNS may not be ready at startup). If peers do not resolve in that window, node bootstraps or joins anyway. | `5` |
+| --- | --- | --- |
+| `GALERIA_CLUSTER_NAME` | Galera cluster name (`wsrep_cluster_name`). | `galera_cluster` |
+| `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to resolve peers before continuing. | `5` |
 | `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. | `1` |
-| `GALERIA_NODE_ADDRESS` | Override this node's IP (used when auto-detection is wrong, e.g. complex networking). | auto-detected |
+| `GALERIA_NODE_ADDRESS` | Override this node's IP address if auto-detection is wrong. | auto-detected |
 
-### Hot backup to S3
+Discovery behavior:
 
-Hot backups run only on nodes in **Synced** state. To enable scheduled backups, set `GALERIA_BACKUP_SCHEDULE` and either `GALERIA_BACKUP_S3_URI` or `GALERIA_BACKUP_S3_BUCKET`.
+- The image resolves `GALERIA_PEERS` and looks for a Synced node.
+- If a Synced node is found, this node joins it.
+- If none is found within the discovery window, only the bootstrap candidate starts a new cluster; other nodes join and wait for primary.
+- In Swarm or Kubernetes, peer DNS may be empty during the first task start. The discovery window avoids long waits while still allowing late joiners.
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `GALERIA_BACKUP_SCHEDULE` | Cron expression for backup job. If empty, scheduled backups are disabled. | `0 1 * * *` (daily at 01:00 UTC) |
-| `GALERIA_BACKUP_S3_URI` | Full S3 URI for backups (overrides bucket+path when set). | `s3://my-bucket/mariadb` |
-| `GALERIA_BACKUP_S3_BUCKET` | S3 bucket name; path under bucket uses `GALERIA_BACKUP_S3_PATH`. Alternative to full URI. | `my-bucket` |
-| `GALERIA_BACKUP_S3_PATH` | Path under bucket when using `GALERIA_BACKUP_S3_BUCKET`. Default `mariadb`. | `backups/mariadb` |
-| `GALERIA_BACKUP_TMPDIR` | Directory for temporary backup files. Default `/tmp`. | `/var/lib/mysql/tmp` |
-| `GALERIA_BACKUP_RETENTION_DAYS` | Delete backups older than this many days (optional). Age is determined by S3 object LastModified, not by filename. | `7` |
-| `GALERIA_CRONTAB` | Extra cron lines (e.g. additional jobs). Applied together with backup schedule. | — |
-| `AWS_ACCESS_KEY_ID` | AWS access key (optional if using IAM role / instance profile). | — |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key (optional if using IAM role). | — |
-| `AWS_REGION` / `AWS_DEFAULT_REGION` | AWS region for S3. | `eu-west-1` |
-| `AWS_ENDPOINT_URL` | Custom S3 endpoint (e.g. MinIO). | `https://s3.example.com` |
+### Health check
 
-Manual run: `docker exec <container> /usr/local/bin/galera-backup.sh`. The script always uses the configured root password (`GALERIA_ROOT_PASSWORD`). Logs: `/var/log/galera-backup.log` inside the container.
+The image starts an HTTP listener on port 9200 and returns 200 only when the node is Synced and `wsrep_ready=ON`.
 
-In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the first task starts. If no peers resolve within the discovery window, the node bootstraps a new cluster; later tasks will resolve and join. This avoids long waits when DNS will not resolve (e.g. single-node or fixed-IP setups).
+Optional:
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `GALERIA_HEALTHCHECK_USER` | MySQL user for health check queries. | `root` |
+| `GALERIA_HEALTHCHECK_PASSWORD` | Password for health check user. | `GALERIA_ROOT_PASSWORD` |
+
+If both `GALERIA_HEALTHCHECK_USER` and `GALERIA_HEALTHCHECK_PASSWORD` are set and the user is not `root`, the entrypoint will create/update that user and grant the minimal permissions required for the check.
+
+### Backups to S3
+
+Hot backups run only on nodes in Synced state.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `GALERIA_BACKUP_SCHEDULE` | Cron schedule for backups. Empty disables cron. | empty |
+| `GALERIA_BACKUP_S3_URI` | Full S3 URI for backups (overrides bucket+path). | — |
+| `GALERIA_BACKUP_S3_BUCKET` | S3 bucket name. | — |
+| `GALERIA_BACKUP_S3_PATH` | Path under bucket if using `GALERIA_BACKUP_S3_BUCKET`. | `mariadb` |
+| `GALERIA_BACKUP_TMPDIR` | Temporary directory for backups. | `/tmp` |
+| `GALERIA_BACKUP_RETENTION_DAYS` | Delete backups older than this many days (by S3 LastModified). | — |
+| `GALERIA_BACKUP_RETENTION_CUTOFF_OVERRIDE` | Override retention cutoff date (YYYY-MM-DD). Useful for tests. | — |
+| `GALERIA_CRONTAB` | Additional cron lines to install alongside backups. | — |
+| `AWS_ACCESS_KEY_ID` | AWS access key (optional if using IAM role). | — |
+| `AWS_SECRET_ACCESS_KEY` | AWS secret key. | — |
+| `AWS_REGION` / `AWS_DEFAULT_REGION` | AWS region for S3. | — |
+| `AWS_ENDPOINT_URL` | Custom S3 endpoint (e.g. MinIO). | — |
+
+Manual backup:
+
+```bash
+docker exec <container> /usr/local/bin/galera-backup.sh
+```
+
+Backup logs are written to `/var/log/galera-backup.log` inside the container.
+
+### Restore (clone) from S3
+
+Restore runs only when `/var/lib/mysql` is empty on container startup and clone variables are set.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `GALERIA_CLONE_BACKUP_S3_URI` | Full S3 URI for restore (overrides bucket+path). | — |
+| `GALERIA_CLONE_BACKUP_S3_BUCKET` | S3 bucket name. | — |
+| `GALERIA_CLONE_BACKUP_S3_PATH` | Path under bucket if using `GALERIA_CLONE_BACKUP_S3_BUCKET`. | `mariadb` |
+| `GALERIA_CLONE_FROM` | Object key relative to base path or full `s3://` URI. If unset, the latest backup under `{hostname}/` is used. | — |
+| `GALERIA_CLONE_TMPDIR` | Temporary directory for restore files. | `/tmp` |
+| `CLONE_AWS_ACCESS_KEY_ID` | AWS access key for restore. | — |
+| `CLONE_AWS_SECRET_ACCESS_KEY` | AWS secret key for restore. | — |
+| `CLONE_AWS_SESSION_TOKEN` | AWS session token (optional). | — |
+| `CLONE_AWS_REGION` / `CLONE_AWS_DEFAULT_REGION` | AWS region for restore. | — |
+| `CLONE_AWS_ENDPOINT_URL` | Custom S3 endpoint (e.g. MinIO). | — |
+
+### Behavior notes
+
+- `root@%` is created on startup and granted full privileges.
+- If the node is the bootstrap candidate, `safe_to_bootstrap` is set to 1 in `grastate.dat` when needed.
 
 ## Ports
 
-- **3306** — MariaDB (clients)
-- **4567** — Galera replication
-- **4568** — IST
-- **4444** — SST
-- **9200** — HTTP health check (wsrep_ready=ON, Synced) for HAProxy
+- 3306 - MariaDB clients
+- 4567 - Galera replication
+- 4568 - IST
+- 4444 - SST
+- 9200 - HTTP health check
 
-## Building the image locally
+## Build
 
 ```bash
 docker build -t galeriadb/11.8:latest -f docker/Dockerfile docker/
 ```
 
-## Testing locally
+## Tests
 
-**Single entry point for all tests:** `make ci` (or `make ci-docker` to run inside a container without installing tools). CI runs the same `make ci` in a dev container, so local and CI stay consistent.
-
-**Dependencies (for `make ci` on the host):** Docker, Docker Compose, [hadolint](https://github.com/hadolint/hadolint), [ShellCheck](https://www.shellcheck.net/), [shfmt](https://github.com/mvdan/sh), [container-structure-test](https://github.com/GoogleContainerTools/container-structure-test), [Trivy](https://github.com/aquasecurity/trivy), [Dockle](https://github.com/goodwithtech/dockle). **No local tools:** use `make ci-docker` (builds `docker/Dockerfile.dev` and runs `make ci` with host Docker socket).
-
-Run the full test suite (same as CI):
+Single entry point:
 
 ```bash
 make ci
 ```
 
-Or in a container (no local install):
+Run inside the dev container (no local toolchain required):
 
 ```bash
 make ci-docker
 ```
 
-Individual targets:
+Targets:
 
 | Command | Description |
-|---------|-------------|
-| `make ci` | **Single entry point:** lint, build, CST, security, smoke, deploy, backup-s3 (same as CI) |
-| `make ci-docker` | Same as `make ci`, but inside dev container (uses host Docker socket) |
-| `make lint` | Hadolint (Dockerfile), ShellCheck and shfmt (shell scripts) |
-| `make lint-docker` | Lint only, in container (same dev image as `ci-docker`) |
-| `make build` | Build image (default `galeriadb/11.8:local`) |
-| `make swarm` | Swarm sanity (deploy stack, wait, cleanup); uses `IMAGE`; run after `make ci` on main/nightly |
+| --- | --- |
+| `make ci` | lint, build, CST, security, smoke, deploy, backup-s3 |
+| `make ci-docker` | same as `make ci` inside dev container |
+| `make lint` | hadolint, shellcheck, shfmt |
+| `make lint-docker` | lint inside dev container |
+| `make build` | build image (`galeriadb/11.8:local`) |
 | `make cst` | Container Structure Tests |
 | `make security` | Trivy (CRITICAL) + Dockle |
-| `make smoke` | Smoke test: all required env present (container starts, MySQL ready) + one case per missing required var (container exits with error) |
-| `make deploy` | 3-node Galera + HAProxy; entrypoint runs all cases in order (01.all, 02.mixed, 03.restart, 04.full-restart) |
-| `make backup-s3` | S3 backup test (MinIO) |
+| `make smoke` | required env validation + single-node startup |
+| `make deploy` | 3-node Galera + HAProxy scenarios |
+| `make backup-s3` | S3 backup tests (MinIO) |
+| `make swarm` | Swarm sanity (run after `make ci`) |
 
-Tests live in `tests/00.*`–`05.*`; each test dir has `entrypoint.sh`. **All tests use the image in `IMAGE`** (default `galeriadb/11.8:local`). Run `make build` before running scripts directly.
+Tests live in `tests/00.*` through `tests/05.*`. Each test directory has its own `entrypoint.sh`. Diagnostics are written to `./artifacts/` on failure.
 
-```bash
-make build   # builds galeriadb/11.8:local
-./tests/01.smoke/entrypoint.sh                    # all cases (01.all-required, 02.missing-peers, 03.missing-root-password, 04.missing-bootstrap-candidate)
-./tests/01.smoke/entrypoint.sh "" 02.missing-peers   # single case
-./tests/02.deploy/entrypoint.sh                    # all cases (01.all → 02.mixed → 03.restart → 04.full-restart)
-./tests/02.deploy/entrypoint.sh "" 02.mixed        # single case (dev)
-./tests/03.backup-s3/entrypoint.sh
-./tests/03.backup-s3/entrypoint.sh "" 01.backup-to-s3          # one case
-./tests/04.cst/entrypoint.sh
-./tests/05.swarm/entrypoint.sh   # IMAGE=galeriadb/11.8:local (or other tag)
-# Or pass image: ./tests/01.smoke/entrypoint.sh galeriadb/11.8:latest
-```
+## CI and publishing
 
-On failure, deploy tests write diagnostics to `./artifacts/` (docker ps, compose logs, inspect).
+GitHub Actions runs `make ci` in a dev container on pull requests to the `11.8` branch and on manual runs. The Swarm job runs on the same triggers after CI passes (unless `[skip-ci]` is set).
 
-## CI overview
+Images are built and published via `.github/workflows/docker-publish.yml` on push to `11.8` and on manual runs (skips when `[skip-ci]` is in the head commit message). Required secrets: `DOCKER_USERNAME`, `DOCKER_PASSWORD`.
 
-GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) uses **one entry point:** `make ci` (run inside a dev container). Same suite locally: `make ci` or `make ci-docker`.
+## Repository layout
 
-- **Triggers:** pull requests, push to main, manual, nightly.
-- **Image under test:** tagged with commit SHA (`galeriadb/11.8:sha-<sha>`), never `latest`, so the publish workflow cannot accidentally push an untested image.
-- **Jobs:** (1) **CI** — build dev image, run `make ci` in container; (2) **Swarm** — on main/nightly only, run `make swarm` with the same SHA-tagged image.
-
-**Troubleshooting:** On failure, open the run → **Summary** → **Artifacts** → `ci-diagnostics` (docker-ps, compose logs, inspect, network/volume lists).
-
-## Repository structure
-
-- `docker/` — Dockerfile and build context (entrypoint, discovery, config, health check, backup scripts).
-- `tests/` — Test suite: each test in its own dir with `entrypoint.sh` and assets (see below).
-- `examples/docker-compose/` — sample Compose stack (three Galera nodes + HAProxy) for local testing.
-- `examples/docker-swarm/` — sample Swarm stack (global Galera + HAProxy + optional mysqld-exporter); see `examples/docker-swarm/README.md`.
-
-**Test layout:** `tests/00.lib/`, `tests/00.config/`; then `01.smoke/` (cases: all required present, missing GALERIA_PEERS, missing GALERIA_ROOT_PASSWORD, missing GALERIA_BOOTSTRAP_CANDIDATE), `02.deploy/` (compose/, cases/), `03.backup-s3/` (cases/), `04.cst/` (config/), `05.swarm/`. Each test dir has `entrypoint.sh`; multi-scenario tests use `cases/`.
+- `docker/` - Dockerfile, entrypoint, entrypoint stages, backup/clone scripts, templates.
+- `tests/` - CI and local test suite.
+- `examples/docker-compose/` - local Compose stack (3 nodes + HAProxy).
+- `examples/docker-swarm/` - Swarm stack and docs.
 
 ## License
 
-This repository's code is licensed under the [MIT License](LICENSE).
-
-The Docker image built from this repo includes third-party software (MariaDB, Galera, socat, etc.) under their own licenses, notably GPL v2. See [NOTICE](NOTICE) for a list of components, their licenses, and source links.
+This repository is licensed under the MIT License. The image includes third-party software (MariaDB, Galera, socat, etc.) under their own licenses; see `NOTICE` for details.

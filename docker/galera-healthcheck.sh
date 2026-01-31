@@ -1,11 +1,8 @@
 #!/bin/bash
-# HTTP health check for HAProxy: returns 200 if node is synced and ready for writes.
-# Checks wsrep_ready=ON and wsrep_local_state_comment=Synced.
-
 set -euo pipefail
 
-MYSQL_USER="${MYSQL_CHECK_USER:-root}"
-MYSQL_PWD="${MYSQL_PWD:-$GALERIA_ROOT_PASSWORD}"
+MYSQL_USER="${GALERIA_HEALTHCHECK_USER:-root}"
+MYSQL_PWD="${GALERIA_HEALTHCHECK_PASSWORD:-$GALERIA_ROOT_PASSWORD}"
 
 response() {
   local code="$1"

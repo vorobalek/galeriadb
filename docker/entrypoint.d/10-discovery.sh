@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# Cluster discovery: resolve peers, find a Synced node, decide bootstrap vs join.
-# Intended to be sourced by entrypoint.sh. Exports: IP_ADDRESS, CLUSTER_ADDRESS,
-# AM_I_BOOTSTRAP, WSREP_CLUSTER_NAME, WSREP_NODE_NAME, WSREP_NODE_ADDRESS.
-
-type log &>/dev/null || log() { echo "[$(date -Is)] $*"; }
 
 resolve_peers_ips() {
   for name in $(echo "$PEER_NAMES" | tr ',' ' '); do
@@ -38,7 +33,6 @@ find_synced_peer() {
   return 1
 }
 
-# --- discovery loop ---
 PEER_NAMES="${GALERIA_PEERS}"
 HOSTNAME="$(hostname)"
 log "HOSTNAME=$HOSTNAME peers=$PEER_NAMES candidate=$GALERIA_BOOTSTRAP_CANDIDATE"

@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Case: run galera-backup.sh and verify .tar.gz object in S3.
-# Sourced from entrypoint. Uses 00.common.sh (start_minio, start_galera, wait_mysql_ready, wait_synced, GALERA_NAME, PASS, S3_BUCKET, S3_PREFIX).
-
 log "Case 01.backup-to-s3: backup and verify in S3"
 start_minio
 start_galera

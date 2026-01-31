@@ -142,6 +142,11 @@ Third-party components used in CI (GitHub Actions)
     - Source: https://github.com/actions/upload-artifact
     - License: MIT
 
+25. peter-evans/dockerhub-description
+    - Source: https://github.com/peter-evans/dockerhub-description
+    - License: MIT
+    - Used in docker-publish workflow to update Docker Hub repo description from README.
+
 -------------------------------------------------------------------------------
 GPL note
 -------------------------------------------------------------------------------

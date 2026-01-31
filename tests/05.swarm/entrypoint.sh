@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Swarm sanity test: init swarm, deploy stack, wait, cleanup.
-# Usage: IMAGE=galeriadb/11.8:tag ./tests/05.swarm/entrypoint.sh
-# Expects: IMAGE set; image must exist (run 'make build' first with same IMAGE).
+# Swarm sanity test.
 
 set -e
 
@@ -36,7 +34,6 @@ cp examples/docker-swarm/stack.env.example examples/docker-swarm/stack.env 2>/de
 cleanup() {
   log "Swarm cleanup"
   docker stack rm mariadb 2>/dev/null || true
-  # Poll until stack is gone (no fixed sleep).
   local elapsed=0
   while [ "$elapsed" -lt 30 ]; do
     if ! docker stack services mariadb 2>/dev/null | grep -q .; then
@@ -50,10 +47,8 @@ cleanup() {
 trap cleanup EXIT
 
 cd examples/docker-swarm
-# Compose uses ${IMAGE:-galeriadb/11.8:latest}; we set IMAGE for our test build
 export IMAGE
 docker stack deploy -c docker-compose.yml mariadb
-# Galera is global: one task per node. Expect N/N where N = number of nodes.
 expected_replicas=$(docker node ls -q 2>/dev/null | wc -l | tr -d ' ')
 log "Waiting for mariadb_galera $expected_replicas/$expected_replicas replicas (up to 90s)..."
 elapsed=0
