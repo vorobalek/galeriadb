@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DATA_DIR="${DATA_DIR:-/var/lib/mysql}"
+DATA_DIR="/var/lib/mysql"
 export DATA_DIR
 
 log() { echo "[$(date -Is)] $*"; }
