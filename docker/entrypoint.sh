@@ -26,6 +26,7 @@ run_stage "50-safe-to-bootstrap.sh"
 run_stage "60-start-mariadb.sh"
 run_stage "70-wait-ready.sh"
 run_stage "80-ensure-root.sh"
+run_stage "85-auto-migrate.sh"
 run_stage "90-backup-cron.sh"
 
 : "${MYSQLD_PID:?}"

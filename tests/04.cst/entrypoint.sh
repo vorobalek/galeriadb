@@ -5,7 +5,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG="${SCRIPT_DIR}/config/cst.yaml"
-IMAGE="${1:-galeriadb/11.8:local}"
+IMAGE="${1:-galeriadb/12.1:local}"
 
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
   echo "Image $IMAGE not found. Run 'make build' first." >&2

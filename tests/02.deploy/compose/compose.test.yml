@@ -1,6 +1,6 @@
 services:
   galera1:
-    image: ${COMPOSE_IMAGE:-galeriadb/11.8:local}
+    image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
     hostname: galera1
     environment:
       GALERIA_ROOT_PASSWORD: secret
@@ -21,7 +21,7 @@ services:
       start_period: 90s
 
   galera2:
-    image: ${COMPOSE_IMAGE:-galeriadb/11.8:local}
+    image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
     hostname: galera2
     environment:
       GALERIA_ROOT_PASSWORD: secret
@@ -42,7 +42,7 @@ services:
       start_period: 120s
 
   galera3:
-    image: ${COMPOSE_IMAGE:-galeriadb/11.8:local}
+    image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
     hostname: galera3
     environment:
       GALERIA_ROOT_PASSWORD: secret

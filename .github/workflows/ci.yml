@@ -52,7 +52,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || needs.gate.outputs.skip != 'true'
     env:
       # Test tag: commit SHA only (no latest). Publish workflow uses its own tag.
-      IMAGE: galeriadb/11.8:sha-${{ github.sha }}
+      IMAGE: galeriadb/12.1:sha-${{ github.sha }}
       ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
     steps:
       - uses: actions/checkout@v6
@@ -116,7 +116,7 @@ jobs:
     needs: [gate, ci]
     if: github.event_name == 'workflow_dispatch' || needs.gate.outputs.skip != 'true'
     env:
-      IMAGE: galeriadb/11.8:sha-${{ github.sha }}
+      IMAGE: galeriadb/12.1:sha-${{ github.sha }}
     steps:
       - uses: actions/checkout@v6
 

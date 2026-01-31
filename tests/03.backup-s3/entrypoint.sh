@@ -8,7 +8,7 @@ CASES_DIR="${SCRIPT_DIR}/cases"
 # shellcheck source=../00.lib/common.sh disable=SC1091
 source "${SCRIPT_DIR}/../00.lib/common.sh"
 
-IMAGE="${1:-galeriadb/11.8:local}"
+IMAGE="${1:-galeriadb/12.1:local}"
 CASE_ARG="${2:-}"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
   log "Image $IMAGE not found. Run 'make build' first."
@@ -59,8 +59,12 @@ if [ -n "$CASE_ARG" ]; then
       # shellcheck disable=SC1091
       source "${CASES_DIR}/06.cluster-restore.sh"
       ;;
+    07.auto-migrate-with-backup)
+      # shellcheck disable=SC1091
+      source "${CASES_DIR}/07.auto-migrate-with-backup.sh"
+      ;;
     *)
-      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old, 04.cron-backup, 05.clone-on-empty, 06.cluster-restore)"
+      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old, 04.cron-backup, 05.clone-on-empty, 06.cluster-restore, 07.auto-migrate-with-backup)"
       exit 1
       ;;
   esac
@@ -77,6 +81,8 @@ else
   source "${CASES_DIR}/05.clone-on-empty.sh"
   # shellcheck disable=SC1091
   source "${CASES_DIR}/06.cluster-restore.sh"
+  # shellcheck disable=SC1091
+  source "${CASES_DIR}/07.auto-migrate-with-backup.sh"
 fi
 
 log "S3 backup test passed."
