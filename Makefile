@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 # Prefer :local for tests so we never accidentally use a pulled image.
-IMAGE ?= galeriadb/11.8:local
+IMAGE ?= galeriadb/12.1:local
 DEV_IMAGE ?= galeriadb/dev:local
 DOCKERFILE ?= docker/Dockerfile
 DOCKERFILE_DEV ?= docker/Dockerfile.dev

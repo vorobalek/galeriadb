@@ -34,6 +34,9 @@ fileExistenceTests:
   - name: "entrypoint ensure-root stage exists"
     path: "/usr/local/bin/entrypoint.d/80-ensure-root.sh"
     shouldExist: true
+  - name: "entrypoint auto-migrate stage exists"
+    path: "/usr/local/bin/entrypoint.d/85-auto-migrate.sh"
+    shouldExist: true
   - name: "entrypoint backup-cron stage exists"
     path: "/usr/local/bin/entrypoint.d/90-backup-cron.sh"
     shouldExist: true

@@ -8,7 +8,7 @@ CASES_DIR="${SCRIPT_DIR}/cases"
 # shellcheck source=../00.lib/common.sh disable=SC1091
 source "${SCRIPT_DIR}/../00.lib/common.sh"
 
-IMAGE="${1:-${COMPOSE_IMAGE:-galeriadb/11.8:local}}"
+IMAGE="${1:-${COMPOSE_IMAGE:-galeriadb/12.1:local}}"
 CASE_ARG="${2:-${CASE:-}}"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || {
   log "Image $IMAGE not found. Run 'make build' first."

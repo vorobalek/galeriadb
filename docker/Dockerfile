@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # hadolint ignore=DL3008
 RUN apt-get update \
-    && curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-11.8" \
+    && curl -LsS https://r.mariadb.com/downloads/mariadb_repo_setup | bash -s -- --mariadb-server-version="mariadb-12.1" \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
     mariadb-server \

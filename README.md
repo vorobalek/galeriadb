@@ -6,8 +6,8 @@ Docker image for MariaDB + Galera Cluster. Designed for Compose and Swarm, suppo
 
 ## Image
 
-- Docker Hub: `galeriadb/11.8`
-- Tag: `latest` (image name encodes MariaDB version, e.g. `galeriadb/11.8:latest`)
+- Docker Hub: `galeriadb/12.1`
+- Tag: `latest` (image name encodes MariaDB version, e.g. `galeriadb/12.1:latest`)
 
 ## Features
 
@@ -119,6 +119,17 @@ Restore runs only when `/var/lib/mysql` is empty on container startup and clone 
 
 - `root@%` is created on startup and granted full privileges.
 - If the node is the bootstrap candidate, `safe_to_bootstrap` is set to 1 in `grastate.dat` when needed.
+- If the data directory was created by an older MariaDB version, the container runs `mariadb-upgrade` on startup.
+
+### Auto-migration
+
+When a version upgrade is detected, the entrypoint runs `mariadb-upgrade` automatically. If S3 backup settings are configured, a hot backup is taken and uploaded **before** the migration runs.
+
+Optional:
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `GALERIA_AUTO_MIGRATE_SYNC_TIMEOUT` | Seconds to wait for `Synced` + `wsrep_ready=ON` before taking the pre-upgrade backup. | `120` |
 
 ## Ports
 
@@ -131,7 +142,7 @@ Restore runs only when `/var/lib/mysql` is empty on container startup and clone 
 ## Build
 
 ```bash
-docker build -t galeriadb/11.8:latest -f docker/Dockerfile docker/
+docker build -t galeriadb/12.1:latest -f docker/Dockerfile docker/
 ```
 
 ## Tests
@@ -156,7 +167,7 @@ Targets:
 | `make ci-docker` | same as `make ci` inside dev container |
 | `make lint` | hadolint, shellcheck, shfmt |
 | `make lint-docker` | lint inside dev container |
-| `make build` | build image (`galeriadb/11.8:local`) |
+| `make build` | build image (`galeriadb/12.1:local`) |
 | `make cst` | Container Structure Tests |
 | `make security` | Trivy (CRITICAL) + Dockle |
 | `make smoke` | required env validation + single-node startup |
