@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
-# Case: retention deletes old backups by S3 LastModified (not by filename).
-# Sourced from entrypoint. Uses 00.common.sh (start_minio, start_galera, wait_mysql_ready, wait_synced).
-# We run backup once, then run again with GALERIA_BACKUP_RETENTION_DAYS and a future CUTOFF_OVERRIDE
-# so that existing objects (LastModified = today) are considered old and get deleted.
-
 log "Case 03.retention-deletes-old: retention deletes by S3 LastModified"
-# Clean up any containers from previous cases (01, 02) so we can start fresh
 docker rm -f "$GALERA_NAME" 2>/dev/null || true
 docker rm -f "$MINIO_NAME" 2>/dev/null || true
 start_minio
@@ -36,8 +30,7 @@ if [ "${count_before:-0}" -lt 1 ]; then
 fi
 log "Backups before retention run: $count_before"
 
-# CUTOFF_OVERRIDE in the future so that all current objects (LastModified today) are "older" than cutoff
-# and get deleted. Portable: no date -d "tomorrow" (GNU) / date -v+1d (BSD) needed.
+# Use a future cutoff so all current objects are treated as old (portable across GNU/BSD date).
 FUTURE_CUTOFF="2030-01-01"
 log "Running backup again with RETENTION_DAYS=1 and CUTOFF_OVERRIDE=$FUTURE_CUTOFF (simulate retention)..."
 docker exec \
@@ -50,10 +43,6 @@ docker exec \
   exit 1
 }
 
-# After retention run: old backups (by S3 LastModified) should be deleted. With CUTOFF=future,
-# all objects created "today" have obj_date < CUTOFF, so they were deleted. Only the new backup
-# from this run remains (uploaded after the retention loop in the same script run). So we expect
-# exactly 1 backup (the one just created).
 count_after=$(docker exec "$GALERA_NAME" aws s3 ls "s3://${S3_BUCKET}/${S3_PREFIX}/" --recursive 2>/dev/null | grep -c '\.tar\.gz' || true)
 if [ "${count_after:-0}" -ne 1 ]; then
   log "Expected exactly 1 backup after retention (old ones deleted), got: $count_after"

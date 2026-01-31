@@ -68,7 +68,7 @@ jobs:
           key: trivy-db-${{ runner.os }}
           restore-keys: trivy-db-
 
-      - name: Run all tests (single entry point)
+      - name: Run all tests
         run: |
           mkdir -p .cache/trivy
           docker run --rm \

@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# Common vars and helpers for deploy cases. Source from entrypoint.
-# Expects: COMPOSE_FILE, PROJECT_NAME, PASS, IMAGE (set by entrypoint).
-
-# Poll until galera1 accepts MySQL (e.g. after bootstrap). No fixed sleep.
 wait_galera1_ready() {
   local elapsed=0
   log "Waiting for galera1 MySQL (up to 60s)..."

@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# Write Galera config from template. Uses CLUSTER_ADDRESS, WSREP_* from environment.
-# Called by entrypoint.sh after discovery.
-
-set -euo pipefail
-
-log() { echo "[$(date -Is)] $*"; }
 
 GALERA_CNF="/etc/mysql/mariadb.conf.d/99-galera.cnf"
 cp /etc/mysql/conf.d/galera.cnf.template "$GALERA_CNF"

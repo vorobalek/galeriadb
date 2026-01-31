@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Common helpers for test scripts: wait_for, retry, logdump.
-# Source from tests/0*.entrypoint.sh via: source "${SCRIPT_DIR}/../00.lib/common.sh"
+# Test helpers.
 
 set -euo pipefail
 
@@ -8,7 +7,6 @@ ARTIFACTS_DIR="${ARTIFACTS_DIR:-./artifacts}"
 
 log() { echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] $*"; }
 
-# Wait until HTTP endpoint returns 200. Usage: wait_http_ok URL timeout_sec
 wait_http_ok() {
   local url="$1"
   local timeout="${2:-30}"
@@ -24,7 +22,6 @@ wait_http_ok() {
   return 1
 }
 
-# Wait until MySQL accepts connections. Usage: wait_mysql host port user pass timeout_sec
 wait_mysql() {
   local host="$1"
   local port="${2:-3306}"
@@ -43,7 +40,6 @@ wait_mysql() {
   return 1
 }
 
-# Retry command N times with delay. Usage: retry N delay_sec command...
 retry() {
   local max="$1"
   local delay="$2"
@@ -60,8 +56,6 @@ retry() {
   return 1
 }
 
-# Collect diagnostic logs on failure into ARTIFACTS_DIR.
-# Usage: logdump compose_file [compose_project]
 logdump() {
   local compose_file="${1:-}"
   local project="${2:-galeriadb-test}"

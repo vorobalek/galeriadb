@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Case: create cluster -> backup -> stop -> wipe volumes -> restore -> verify cluster and data.
-# Sourced from entrypoint. Uses 00.common.sh helpers.
-
 log "Case 06.cluster-restore: cluster backup -> wipe -> restore -> verify"
-# Clean up any containers from previous cases
 docker rm -f "$GALERA_NAME" 2>/dev/null || true
 docker rm -f "$MINIO_NAME" 2>/dev/null || true
 

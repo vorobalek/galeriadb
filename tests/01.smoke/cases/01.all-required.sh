@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Smoke case: all required env vars set — container starts, MySQL becomes ready, SELECT 1 succeeds.
-# Expects: IMAGE, CONTAINER_NAME, PASS (from 00.common.sh; entrypoint sets CONTAINER_NAME).
-
 set -euo pipefail
 
 log "Case 01.all-required: all required params present"

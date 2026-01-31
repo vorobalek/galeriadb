@@ -1,7 +1,4 @@
 #!/bin/bash
-# HTTP health check for HAProxy: returns 200 if node is synced and ready for writes.
-# Checks wsrep_ready=ON and wsrep_local_state_comment=Synced.
-
 set -euo pipefail
 
 MYSQL_USER="${MYSQL_CHECK_USER:-root}"

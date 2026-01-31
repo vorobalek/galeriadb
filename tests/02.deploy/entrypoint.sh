@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Deploy test: 3 Galera nodes + HAProxy. Runs cases from cases/ (01.all, 02.mixed, 03.restart, 04.full-restart).
-# Usage: ./tests/02.deploy/entrypoint.sh [IMAGE] [CASE]
-#   CASE: 01.all | 02.mixed | 03.restart | 04.full-restart (default: run all in order)
-# Env: COMPOSE_IMAGE, CASE, ARTIFACTS_DIR, HOST_WORKSPACE (host path for compose volumes; required when running inside ci-docker)
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first)
+# Deploy test runner.
 
 set -euo pipefail
 
@@ -25,7 +21,6 @@ export HOST_WORKSPACE="${HOST_WORKSPACE:-$PWD}"
 export PASS="secret"
 export COMPOSE_IMAGE="$IMAGE"
 
-# Map legacy scenario names to case scripts
 case "$CASE_ARG" in
   all) CASE_ARG="01.all" ;;
   mixed) CASE_ARG="02.mixed" ;;
@@ -44,8 +39,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# shellcheck source=cases/00.common.sh disable=SC1091
-source "${CASES_DIR}/00.common.sh"
+# shellcheck source=lib.sh disable=SC1091
+source "${SCRIPT_DIR}/lib.sh"
 
 if [ -n "$CASE_ARG" ]; then
   case "$CASE_ARG" in

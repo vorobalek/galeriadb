@@ -1,10 +1,5 @@
-# Galeriadb: build, lint, test. Run from repo root.
-# Dependencies: docker, docker compose, hadolint, shellcheck, shfmt (for lint),
-#   container-structure-test, trivy, dockle (for security/cst).
-# Optional: use 'make ci-docker' (full CI in container) or 'make lint-docker' (lint only, same dev image).
-
 SHELL := /bin/bash
-# Use :local for tests so we never accidentally use a pulled image when running via make
+# Prefer :local for tests so we never accidentally use a pulled image.
 IMAGE ?= galeriadb/11.8:local
 DEV_IMAGE ?= galeriadb/dev:local
 DOCKERFILE ?= docker/Dockerfile
@@ -13,7 +8,6 @@ CONTEXT ?= docker/
 CST_CONFIG ?= tests/04.cst/config/cst.yaml
 ARTIFACTS_DIR ?= ./artifacts
 
-# Shell scripts to lint (docker/ and tests/)
 SH_FILES := $(shell find docker tests -name '*.sh' 2>/dev/null || true)
 DOCKERFILES := $(shell find . -name 'Dockerfile' -not -path './.git/*' 2>/dev/null || true)
 
@@ -39,27 +33,21 @@ lint-shfmt:
 	@command -v shfmt >/dev/null 2>&1 || (echo "shfmt not found; install with: go install mvdan.cc/sh/v3/cmd/shfmt@latest" && exit 1)
 	@for f in $(SH_FILES); do shfmt -d -i 2 -ci "$$f" || exit 1; done
 
-# Run lint inside dev container (same image as ci-docker; no Docker socket needed).
 lint-docker: build-dev
 	@echo "--- lint (in container) ---"
 	docker run --rm -v "$(CURDIR):/workspace" -w /workspace "$(DEV_IMAGE)" make lint
 
-# Dev image: hadolint, shellcheck, shfmt, CST, Trivy, Dockle, Docker CLI + Compose. Used by ci-docker and lint-docker.
 build-dev:
 	@echo "--- build dev image $(DEV_IMAGE) ---"
 	docker build -t "$(DEV_IMAGE)" -f "$(DOCKERFILE_DEV)" .
 
-# Single entry point for all tests. Used by CI and locally (make ci or make ci-docker).
 ci: lint build cst security test-smoke test-deploy test-backup-s3
 	@echo "--- CI passed ---"
 
-# Swarm sanity (main/schedule only in CI). Uses IMAGE; run after make ci.
 swarm: build
 	@echo "--- swarm sanity ---"
 	bash ./tests/05.swarm/entrypoint.sh
 
-# Run full CI inside dev container; uses host Docker via socket (no Docker-in-Docker).
-# Trivy cache is mounted so the vuln DB is downloaded once and reused (no ~800 MiB each run).
 ci-docker: build-dev
 	@echo "--- CI (in container, host Docker socket) ---"
 	docker run --rm \
@@ -72,7 +60,6 @@ ci-docker: build-dev
 		-e HOST_WORKSPACE="$(CURDIR)" \
 		"$(DEV_IMAGE)" make ci
 
-# Alias for ci-docker.
 test-docker: ci-docker
 
 build:
@@ -95,7 +82,6 @@ test-smoke: build
 	@echo "--- smoke test ---"
 	./tests/01.smoke/entrypoint.sh "$(IMAGE)"
 
-# Runs all deploy cases in order: 01.all, 02.mixed, 03.restart, 04.full-restart (one compose config).
 test-deploy: build
 	@echo "--- deploy test ---"
 	COMPOSE_IMAGE="$(IMAGE)" ./tests/02.deploy/entrypoint.sh "$(IMAGE)"
@@ -104,7 +90,6 @@ test-backup-s3: build
 	@echo "--- S3 backup test (MinIO) ---"
 	./tests/03.backup-s3/entrypoint.sh "$(IMAGE)"
 
-# Alias for ci (single entry point for full check).
 test: ci
 
 clean:

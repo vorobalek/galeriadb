@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Case: start galera1, then galera2/galera3 after delay, then HAProxy.
-# Sourced from entrypoint. Uses COMPOSE_FILE, PROJECT_NAME, PASS from 00.common.sh.
-
 log "Case 02.mixed: staggered start"
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down -v --remove-orphans 2>/dev/null || true
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up -d galera1

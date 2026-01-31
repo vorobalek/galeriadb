@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Container Structure Test: run CST with config from this test dir.
-# Usage: ./tests/04.cst/entrypoint.sh [IMAGE]
-# IMAGE defaults to galeriadb/11.8:local (use 'make build' first). Requires container-structure-test on PATH.
+# Container Structure Test runner.
 
 set -euo pipefail
 

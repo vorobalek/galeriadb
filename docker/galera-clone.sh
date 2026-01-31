@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Restore MariaDB data directory from an S3 backup archive.
-# Triggered by entrypoint when /var/lib/mysql is empty and GALERIA_CLONE_* is set.
+# Restore MariaDB data directory from an S3 backup.
 
 set -euo pipefail
 
 log() { echo "[$(date -Is)] $*"; }
 
-# Backup source: full URI or bucket + path (same shape as backup envs).
 if [ -n "${GALERIA_CLONE_BACKUP_S3_URI:-}" ]; then
   S3_BASE="${GALERIA_CLONE_BACKUP_S3_URI}"
 elif [ -n "${GALERIA_CLONE_BACKUP_S3_BUCKET:-}" ]; then

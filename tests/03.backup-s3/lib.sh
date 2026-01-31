@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Common vars and helpers for backup-s3 cases. Source from entrypoint.
-# Expects: IMAGE, SCRIPT_DIR (entrypoint sets these). Sets: NET_NAME, MINIO_NAME, GALERA_NAME, PASS, S3_BUCKET, S3_PREFIX, MINIO_ACCESS, MINIO_SECRET.
-
 NET_NAME="galeriadb-backup-test-$$"
 MINIO_NAME="minio-backup-$$"
 GALERA_NAME="galera-backup-$$"
@@ -42,7 +39,6 @@ start_minio() {
   wait_minio_ready
 }
 
-# Poll until MinIO responds (no fixed sleep).
 wait_minio_ready() {
   local elapsed=0
   log "Waiting for MinIO (up to 30s)..."

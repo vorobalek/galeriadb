@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# Case: restore from S3 backup when data dir is empty on startup.
-# Sourced from entrypoint. Uses 00.common.sh helpers.
-
 log "Case 05.clone-on-empty: restore from S3 when /var/lib/mysql is empty"
-# Clean up any containers from previous cases
 docker rm -f "$GALERA_NAME" 2>/dev/null || true
 docker rm -f "$MINIO_NAME" 2>/dev/null || true
 

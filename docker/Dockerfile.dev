@@ -1,16 +1,9 @@
-# Dev/CI tools image: lint + CST + Trivy + Dockle + Docker CLI + Compose.
-# Run CI-like checks locally without installing tools; uses host Docker via socket.
-#
-#   make ci-docker   # full CI (lint, build, cst, security, smoke, deploy, backup-s3)
-#   make lint-docker # lint only (same image)
-#
-# For ci-docker: requires -v /var/run/docker.sock (make ci-docker does this).
+# Dev/CI tools image.
 
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Versions for reproducible builds
 ARG HADOLINT_VERSION=2.12.0
 ARG SHFMT_VERSION=3.12.0
 ARG TRIVY_VERSION=0.52.0
@@ -26,7 +19,6 @@ RUN apt-get update -qq \
         wget \
     && rm -rf /var/lib/apt/lists/*
 
-# --- Lint: hadolint, shfmt ---
 ARG TARGETARCH
 RUN case "$TARGETARCH" in \
         amd64) HADOLINT_ARCH=x86_64 ;; arm64) HADOLINT_ARCH=arm64 ;; *) HADOLINT_ARCH="$TARGETARCH" ;; \
@@ -42,7 +34,6 @@ RUN case "$TARGETARCH" in \
         "https://github.com/mvdan/sh/releases/download/v${SHFMT_VERSION}/shfmt_v${SHFMT_VERSION}_linux_${SHFMT_ARCH}" \
     && chmod +x /usr/local/bin/shfmt
 
-# --- Container Structure Test ---
 RUN case "$TARGETARCH" in \
         amd64) CST_ARCH=amd64 ;; arm64) CST_ARCH=arm64 ;; *) CST_ARCH="$TARGETARCH" ;; \
     esac \
@@ -50,11 +41,9 @@ RUN case "$TARGETARCH" in \
         "https://github.com/GoogleContainerTools/container-structure-test/releases/latest/download/container-structure-test-linux-${CST_ARCH}" \
     && chmod +x /usr/local/bin/container-structure-test
 
-# --- Trivy ---
 RUN curl -sSfL "https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh" \
     | sh -s -- -b /usr/local/bin "v${TRIVY_VERSION}"
 
-# --- Dockle ---
 RUN case "$TARGETARCH" in \
         amd64) DOCKLE_ARCH=64bit ;; arm64) DOCKLE_ARCH=ARM64 ;; *) DOCKLE_ARCH=64bit ;; \
     esac \
@@ -64,7 +53,6 @@ RUN case "$TARGETARCH" in \
     && chmod +x /usr/local/bin/dockle \
     && rm -rf /tmp/dockle.tar.gz /tmp/dockle*
 
-# --- Docker CLI (client only; daemon via mounted socket). Use static binary for API 1.44+ compatibility. ---
 ARG DOCKER_CLI_VERSION=28.0.3
 RUN case "$TARGETARCH" in \
         amd64) DOCKER_ARCH=x86_64 ;; arm64) DOCKER_ARCH=aarch64 ;; *) DOCKER_ARCH=x86_64 ;; \
@@ -84,5 +72,4 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
 
 WORKDIR /workspace
 
-# Default: run full CI (lint + build + cst + security + smoke + deploy + backup-s3)
 CMD ["make", "ci"]
