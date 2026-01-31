@@ -2,6 +2,7 @@
 set -euo pipefail
 
 log() { echo "[$(date -Is)] $*"; }
+DATA_DIR="/var/lib/mysql"
 
 # Required environment variables (no defaults; container will not start without them)
 for req in GALERIA_PEERS GALERIA_ROOT_PASSWORD GALERIA_BOOTSTRAP_CANDIDATE; do
@@ -28,10 +29,29 @@ source "${SCRIPT_DIR}/galera-discovery.sh"
 # --- Health check listener ---
 socat -T 2 TCP-LISTEN:9200,reuseaddr,fork SYSTEM:"${SCRIPT_DIR}/galera-healthcheck.sh" 2>/dev/null &
 
-# --- Init data directory if empty ---
-if [ ! -f /var/lib/mysql/ibdata1 ]; then
-  log "Initializing MariaDB data directory..."
-  mariadb-install-db --user=mysql --datadir=/var/lib/mysql
+# --- Init or clone data directory if empty ---
+is_datadir_empty() {
+  shopt -s nullglob dotglob
+  local entries=("$DATA_DIR"/*)
+  shopt -u nullglob dotglob
+  if [ "${#entries[@]}" -eq 0 ]; then
+    return 0
+  fi
+  if [ "${#entries[@]}" -eq 1 ] && [ "$(basename "${entries[0]}")" = "lost+found" ]; then
+    return 0
+  fi
+  return 1
+}
+clone_enabled() { [ -n "${GALERIA_CLONE_BACKUP_S3_URI:-}" ] || [ -n "${GALERIA_CLONE_BACKUP_S3_BUCKET:-}" ]; }
+
+if is_datadir_empty; then
+  if clone_enabled; then
+    log "Data directory empty and clone configured -> restoring from S3 backup..."
+    "${SCRIPT_DIR}/galera-clone.sh"
+  else
+    log "Initializing MariaDB data directory..."
+    mariadb-install-db --user=mysql --datadir="$DATA_DIR"
+  fi
 fi
 
 if [ "$AM_I_BOOTSTRAP" = "1" ]; then

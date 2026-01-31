@@ -72,6 +72,23 @@ Hot backups run only on nodes in **Synced** state. To enable scheduled backups, 
 
 Manual run: `docker exec <container> /usr/local/bin/galera-backup.sh`. The script always uses the configured root password (`GALERIA_ROOT_PASSWORD`). Logs: `/var/log/galera-backup.log` inside the container.
 
+### Restore (clone) from S3
+
+Automatic restore runs **only when `/var/lib/mysql` is empty** at container startup and clone variables are set. It downloads the backup, prepares it, and restores the data directory before MariaDB starts.
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `GALERIA_CLONE_BACKUP_S3_URI` | Full S3 URI for restore (overrides bucket+path when set). | `s3://my-bucket/mariadb` |
+| `GALERIA_CLONE_BACKUP_S3_BUCKET` | S3 bucket name; path under bucket uses `GALERIA_CLONE_BACKUP_S3_PATH`. Alternative to full URI. | `my-bucket` |
+| `GALERIA_CLONE_BACKUP_S3_PATH` | Path under bucket when using `GALERIA_CLONE_BACKUP_S3_BUCKET`. Default `mariadb`. | `backups/mariadb` |
+| `GALERIA_CLONE_FROM` | Object key relative to the base path (or full `s3://` URI). If unset, uses `{hostname}/<latest backup>`. | `galera1/2025-01-01T00-00-00Z.tar.gz` |
+| `GALERIA_CLONE_TMPDIR` | Directory for temporary restore files. Default `/tmp`. | `/var/lib/mysql/tmp` |
+| `CLONE_AWS_ACCESS_KEY_ID` | AWS access key (optional if using IAM role / instance profile). | — |
+| `CLONE_AWS_SECRET_ACCESS_KEY` | AWS secret key (optional if using IAM role). | — |
+| `CLONE_AWS_SESSION_TOKEN` | AWS session token (optional). | — |
+| `CLONE_AWS_REGION` / `CLONE_AWS_DEFAULT_REGION` | AWS region for S3. | `eu-west-1` |
+| `CLONE_AWS_ENDPOINT_URL` | Custom S3 endpoint (e.g. MinIO). | `https://s3.example.com` |
+
 In Swarm or Kubernetes, peer DNS (e.g. `tasks.galera`) is often empty when the first task starts. If no peers resolve within the discovery window, the node bootstraps a new cluster; later tasks will resolve and join. This avoids long waits when DNS will not resolve (e.g. single-node or fixed-IP setups).
 
 ## Ports
