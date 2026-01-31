@@ -48,6 +48,10 @@ wait_minio_ready() {
 
 start_galera() {
   log "Starting Galera node (single, bootstrap)..."
+  local extra=()
+  if [ -n "${GALERIA_BACKUP_SCHEDULE:-}" ]; then
+    extra+=(-e "GALERIA_BACKUP_SCHEDULE=${GALERIA_BACKUP_SCHEDULE}")
+  fi
   docker run -d \
     --name "$GALERA_NAME" \
     --hostname galera1 \
@@ -61,6 +65,7 @@ start_galera() {
     -e AWS_ACCESS_KEY_ID="$MINIO_ACCESS" \
     -e AWS_SECRET_ACCESS_KEY="$MINIO_SECRET" \
     -e AWS_DEFAULT_REGION=us-east-1 \
+    "${extra[@]}" \
     "$IMAGE"
 }
 
