@@ -9,6 +9,8 @@ log() { echo "[$(date -Is)] $*"; }
 
 ENV_FILE="/run/galera-backup.env"
 {
+  # Cron uses a minimal PATH; ensure /usr/local/bin (aws, mariadb-backup) is available
+  echo "export PATH=\"/usr/local/bin:/usr/bin:/bin:\$PATH\""
   echo "export GALERIA_ROOT_PASSWORD=\"${GALERIA_ROOT_PASSWORD}\""
   [ -n "${GALERIA_BACKUP_S3_URI:-}" ] && echo "export GALERIA_BACKUP_S3_URI=\"${GALERIA_BACKUP_S3_URI}\""
   [ -n "${GALERIA_BACKUP_S3_BUCKET:-}" ] && echo "export GALERIA_BACKUP_S3_BUCKET=\"${GALERIA_BACKUP_S3_BUCKET}\""
