@@ -112,7 +112,6 @@ Restore runs only when `/var/lib/mysql` is empty on container startup and clone 
 | `GALERIA_CLONE_TMPDIR` | Temporary directory for restore files. | `/tmp` |
 | `CLONE_AWS_ACCESS_KEY_ID` | AWS access key for restore. | — |
 | `CLONE_AWS_SECRET_ACCESS_KEY` | AWS secret key for restore. | — |
-| `CLONE_AWS_SESSION_TOKEN` | AWS session token (optional). | — |
 | `CLONE_AWS_REGION` / `CLONE_AWS_DEFAULT_REGION` | AWS region for restore. | — |
 | `CLONE_AWS_ENDPOINT_URL` | Custom S3 endpoint (e.g. MinIO). | — |
 
