@@ -6,7 +6,7 @@ name: CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [11.8]
   workflow_dispatch:
 
 jobs:
