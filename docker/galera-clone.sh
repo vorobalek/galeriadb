@@ -37,9 +37,11 @@ else
   HOST="${HOSTNAME:-unknown}"
   PREFIX="${S3_BASE}/${HOST}/"
   log "Selecting latest backup under ${PREFIX}"
-  latest=$(
-    aws_cmd s3 ls "${PREFIX}" "${AWS_OPTS[@]}" 2>/dev/null | awk '$4 ~ /\.tar\.gz$/ {print $4}' | sort | tail -1
-  )
+  if ! ls_out=$(aws_cmd s3 ls "${PREFIX}" "${AWS_OPTS[@]}" 2>&1); then
+    log "ERROR: aws s3 ls failed for ${PREFIX}: ${ls_out}"
+    exit 1
+  fi
+  latest=$(printf "%s\n" "$ls_out" | awk '$4 ~ /\.tar\.gz$/ {print $4}' | sort | tail -1)
   if [ -z "${latest:-}" ]; then
     log "ERROR: No backups found under ${PREFIX}"
     exit 1
@@ -54,7 +56,10 @@ TAR_PATH="${TMP_BASE}/clone-${TS}.tar.gz"
 
 mkdir -p "$WORKDIR"
 log "Downloading backup: ${S3_OBJ}"
-aws_cmd s3 cp "${S3_OBJ}" "${TAR_PATH}" "${AWS_OPTS[@]}"
+if ! cp_out=$(aws_cmd s3 cp "${S3_OBJ}" "${TAR_PATH}" "${AWS_OPTS[@]}" 2>&1); then
+  log "ERROR: aws s3 cp failed for ${S3_OBJ}: ${cp_out}"
+  exit 1
+fi
 
 tar -C "$WORKDIR" -xzf "$TAR_PATH"
 rm -f "$TAR_PATH"
