@@ -24,7 +24,7 @@ aws_env=()
 [ -n "${CLONE_AWS_REGION:-}" ] && aws_env+=(AWS_REGION="$CLONE_AWS_REGION")
 
 aws_cmd() {
-  "${aws_env[@]}" aws "$@"
+  env "${aws_env[@]}" aws "$@"
 }
 
 if [ -n "${GALERIA_CLONE_FROM:-}" ]; then
