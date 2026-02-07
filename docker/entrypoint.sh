@@ -10,33 +10,20 @@ export SCRIPT_DIR ENTRYPOINT_DIR
 # shellcheck source=/dev/null
 source "${SCRIPT_DIR}/entrypoint-lib.sh"
 
-run_stage() {
-  local stage="$1"
-  set -- "${ORIG_ARGS[@]}"
-  # shellcheck source=/dev/null
-  source "${ENTRYPOINT_DIR}/${stage}"
-}
-
-run_stage "00-env.sh"
-run_stage "10-discovery.sh"
-run_stage "20-write-config.sh"
-run_stage "30-healthcheck.sh"
-run_stage "40-init-or-clone.sh"
-run_stage "50-safe-to-bootstrap.sh"
-run_stage "60-start-mariadb.sh"
-run_stage "70-wait-ready.sh"
-run_stage "80-ensure-root.sh"
-run_stage "85-auto-migrate.sh"
-run_stage "90-backup-cron.sh"
+run_stage "00-env.sh" "${ORIG_ARGS[@]}"
+run_stage "10-discovery.sh" "${ORIG_ARGS[@]}"
+run_stage "20-write-config.sh" "${ORIG_ARGS[@]}"
+run_stage "30-healthcheck.sh" "${ORIG_ARGS[@]}"
+run_stage "40-init-or-clone.sh" "${ORIG_ARGS[@]}"
+run_stage "50-safe-to-bootstrap.sh" "${ORIG_ARGS[@]}"
+run_stage "60-start-mariadb.sh" "${ORIG_ARGS[@]}"
+run_stage "70-wait-ready.sh" "${ORIG_ARGS[@]}"
+run_stage "80-ensure-root.sh" "${ORIG_ARGS[@]}"
+run_stage "85-auto-migrate.sh" "${ORIG_ARGS[@]}"
+run_stage "90-backup-cron.sh" "${ORIG_ARGS[@]}"
 
 : "${MYSQLD_PID:?}"
 
-shutdown() {
-  log "Received signal, shutting down MariaDB..."
-  kill -TERM "$MYSQLD_PID" 2>/dev/null || true
-  wait "$MYSQLD_PID" 2>/dev/null || true
-  exit 0
-}
 trap shutdown SIGTERM SIGINT
 
 wait "$MYSQLD_PID"
