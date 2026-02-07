@@ -1,7 +1,7 @@
 # MariaDB + Galera (variables substituted at runtime)
 
 [mysqld]
-bind-address=0.0.0.0
+bind_address=0.0.0.0
 skip_name_resolve=ON
 binlog_format=ROW
 default_storage_engine=InnoDB

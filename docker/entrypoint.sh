@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-SCRIPT_DIR="${SCRIPT_DIR:-/usr/local/bin}"
-ENTRYPOINT_DIR="${ENTRYPOINT_DIR:-/usr/local/bin/entrypoint.d}"
+SCRIPT_DIR="/usr/local/bin"
+ENTRYPOINT_DIR="/usr/local/bin/entrypoint.d"
 ORIG_ARGS=("$@")
 
 export SCRIPT_DIR ENTRYPOINT_DIR
