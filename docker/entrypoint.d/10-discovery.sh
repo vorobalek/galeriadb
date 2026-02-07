@@ -51,6 +51,8 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
   sleep "$GALERIA_DISCOVERY_INTERVAL"
 done
 
+log "Discovery finished: synced_peer=${SYNCED_PEER_IP:-none}, resolved_ips=${IPS:-none}"
+
 FIRST_PEER_IP="$(echo "$IPS" | head -n 1 || true)"
 if [ -z "$FIRST_PEER_IP" ]; then
   IP_ADDRESS="$(hostname -i 2>/dev/null | awk '{print $1}')"

@@ -42,3 +42,18 @@ wait_for_mysql() {
   done
   return 1
 }
+
+run_stage() {
+  local stage="$1"
+  shift
+  set -- "$@"
+  # shellcheck source=/dev/null
+  source "${ENTRYPOINT_DIR}/${stage}"
+}
+
+shutdown() {
+  log "Received signal, shutting down MariaDB..."
+  kill -TERM "$MYSQLD_PID" 2>/dev/null || true
+  wait "$MYSQLD_PID" 2>/dev/null || true
+  exit 0
+}

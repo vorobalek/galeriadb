@@ -59,4 +59,7 @@ EXPOSE 3306 4567 4568 4444 9200
 
 VOLUME /var/lib/mysql
 
+HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=3 \
+  CMD curl -sf http://127.0.0.1:9200/ || exit 1
+
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
