@@ -59,8 +59,12 @@ if [ -n "$CASE_ARG" ]; then
       # shellcheck disable=SC1091
       source "${CASES_DIR}/06.cluster-restore.sh"
       ;;
+    08.clone-fails-without-backup)
+      # shellcheck disable=SC1091
+      source "${CASES_DIR}/08.clone-fails-without-backup.sh"
+      ;;
     *)
-      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old, 04.cron-backup, 05.clone-on-empty, 06.cluster-restore)"
+      log "Unknown case: $CASE_ARG (use 01.backup-to-s3, 02.fail-without-s3-config, 03.retention-deletes-old, 04.cron-backup, 05.clone-on-empty, 06.cluster-restore, 08.clone-fails-without-backup)"
       exit 1
       ;;
   esac
@@ -77,6 +81,8 @@ else
   source "${CASES_DIR}/05.clone-on-empty.sh"
   # shellcheck disable=SC1091
   source "${CASES_DIR}/06.cluster-restore.sh"
+  # shellcheck disable=SC1091
+  source "${CASES_DIR}/08.clone-fails-without-backup.sh"
 fi
 
 log "S3 backup test passed."

@@ -159,7 +159,7 @@ Targets:
 | `make build` | build image (`galeriadb/11.8:local`) |
 | `make cst` | Container Structure Tests |
 | `make security` | Trivy (CRITICAL) + Dockle |
-| `make smoke` | required env validation + single-node startup |
+| `make smoke` | required env validation, single-node startup, graceful shutdown, Docker HEALTHCHECK |
 | `make deploy` | 3-node Galera + HAProxy scenarios |
 | `make backup-s3` | S3 backup tests (MinIO) |
 | `make swarm` | Swarm sanity (run after `make ci`) |
