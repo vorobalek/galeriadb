@@ -36,11 +36,11 @@ run_case() {
 
 if [ -n "$CASE_ARG" ]; then
   case "$CASE_ARG" in
-    01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate | 05.healthcheck-user | 06.graceful-shutdown | 07.healthcheck-docker)
+    01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate | 05.healthcheck-user | 06.graceful-shutdown | 07.healthcheck-docker | 08.consensus-bootstrap)
       run_case "$CASE_ARG"
       ;;
     *)
-      log "Unknown case: $CASE_ARG. Use 01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate | 05.healthcheck-user | 06.graceful-shutdown | 07.healthcheck-docker"
+      log "Unknown case: $CASE_ARG. Use 01.all-required | 02.missing-peers | 03.missing-root-password | 04.missing-bootstrap-candidate | 05.healthcheck-user | 06.graceful-shutdown | 07.healthcheck-docker | 08.consensus-bootstrap"
       exit 1
       ;;
   esac
@@ -53,5 +53,6 @@ else
   run_case "05.healthcheck-user"
   run_case "06.graceful-shutdown"
   run_case "07.healthcheck-docker"
+  run_case "08.consensus-bootstrap"
   log "Smoke test passed (all cases)."
 fi

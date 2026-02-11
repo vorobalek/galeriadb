@@ -26,6 +26,7 @@ case "$CASE_ARG" in
   mixed) CASE_ARG="02.mixed" ;;
   restart) CASE_ARG="03.restart" ;;
   full-restart) CASE_ARG="04.full-restart" ;;
+  consensus) CASE_ARG="05.consensus" ;;
 esac
 
 cleanup() {
@@ -44,12 +45,12 @@ source "${SCRIPT_DIR}/lib.sh"
 
 if [ -n "$CASE_ARG" ]; then
   case "$CASE_ARG" in
-    01.all | 02.mixed | 03.restart | 04.full-restart)
+    01.all | 02.mixed | 03.restart | 04.full-restart | 05.consensus)
       # shellcheck disable=SC1090,SC1091
       source "${CASES_DIR}/${CASE_ARG}.sh"
       ;;
     *)
-      log "Unknown case: $CASE_ARG (use 01.all, 02.mixed, 03.restart, 04.full-restart)"
+      log "Unknown case: $CASE_ARG (use 01.all, 02.mixed, 03.restart, 04.full-restart, 05.consensus)"
       exit 1
       ;;
   esac
@@ -62,6 +63,8 @@ else
   source "${CASES_DIR}/03.restart.sh"
   # shellcheck disable=SC1091
   source "${CASES_DIR}/04.full-restart.sh"
+  # shellcheck disable=SC1091
+  source "${CASES_DIR}/05.consensus.sh"
 fi
 
 log "Deploy test passed."

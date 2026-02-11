@@ -43,6 +43,9 @@ fileExistenceTests:
   - name: "galera-healthcheck exists"
     path: "/usr/local/bin/galera-healthcheck.sh"
     shouldExist: true
+  - name: "galera-seqno-server exists"
+    path: "/usr/local/bin/galera-seqno-server.sh"
+    shouldExist: true
   - name: "galera-backup exists"
     path: "/usr/local/bin/galera-backup.sh"
     shouldExist: true
