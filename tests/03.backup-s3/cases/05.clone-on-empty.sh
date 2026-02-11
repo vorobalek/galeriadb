@@ -29,7 +29,7 @@ docker exec -e MYSQL_PWD="$PASS" "$GALERA_NAME" /usr/local/bin/galera-backup.sh 
 
 log "Restarting with clone enabled..."
 docker rm -f "$GALERA_NAME" 2>/dev/null || true
-start_galera_clone
+start_galera --clone
 wait_mysql_ready || {
   docker logs "$GALERA_NAME" 2>&1 | tail -80
   exit 1

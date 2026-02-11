@@ -11,12 +11,12 @@ ARTIFACTS_DIR ?= ./artifacts
 SH_FILES := $(shell find docker tests -name '*.sh' 2>/dev/null || true)
 DOCKERFILES := $(shell find . -name 'Dockerfile' -not -path './.git/*' 2>/dev/null || true)
 
-.PHONY: help lint lint-docker build build-dev ci ci-docker swarm cst security test-smoke test-deploy test-backup-s3 test clean
+.PHONY: help lint lint-docker lint-cst-coverage build build-dev ci ci-docker swarm cst security test-smoke test-deploy test-backup-s3 test clean
 
 help:
 	@echo "Targets: lint, lint-docker, build, build-dev, ci, ci-docker, swarm, cst, security, test-smoke, test-deploy, test-backup-s3, test"
 
-lint: lint-dockerfile lint-shell lint-shfmt
+lint: lint-dockerfile lint-shell lint-shfmt lint-cst-coverage
 
 lint-dockerfile:
 	@echo "--- hadolint ---"
@@ -32,6 +32,10 @@ lint-shfmt:
 	@echo "--- shfmt check ---"
 	@command -v shfmt >/dev/null 2>&1 || (echo "shfmt not found; install with: go install mvdan.cc/sh/v3/cmd/shfmt@latest" && exit 1)
 	@for f in $(SH_FILES); do shfmt -d -i 2 -ci "$$f" || exit 1; done
+
+lint-cst-coverage:
+	@echo "--- CST coverage ---"
+	@./tests/04.cst/check-cst-coverage.sh
 
 lint-docker: build-dev
 	@echo "--- lint (in container) ---"
@@ -76,7 +80,9 @@ security: build
 	trivy image --exit-code 1 --severity CRITICAL $(IMAGE)
 	@echo "--- dockle ---"
 	@command -v dockle >/dev/null 2>&1 || (echo "dockle not found" && exit 1)
-	@dockle --exit-code 1 -i CIS-DI-0001 $(IMAGE)
+	@docker save "$(IMAGE)" -o /tmp/dockle-image.tar
+	@dockle --exit-code 1 -i CIS-DI-0001 --input /tmp/dockle-image.tar
+	@rm -f /tmp/dockle-image.tar
 
 test-smoke: build
 	@echo "--- smoke test ---"

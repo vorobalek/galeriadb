@@ -40,78 +40,57 @@ start_minio() {
 }
 
 wait_minio_ready() {
-  local elapsed=0
   log "Waiting for MinIO (up to 30s)..."
-  while [ "$elapsed" -lt 30 ]; do
-    if docker run --rm --network "$NET_NAME" curlimages/curl:latest -sf --max-time 2 "http://${MINIO_NAME}:9000/minio/health/live" >/dev/null 2>&1; then
-      log "MinIO ready"
-      return 0
-    fi
-    sleep 1
-    elapsed=$((elapsed + 1))
-  done
-  log "MinIO did not become ready"
-  return 1
+  poll_until "MinIO" 30 \
+    docker run --rm --network "$NET_NAME" curlimages/curl:latest \
+    -sf --max-time 2 "http://${MINIO_NAME}:9000/minio/health/live"
 }
 
+# start_galera [--clone]
+# Starts a single-node Galera container with S3 backup or clone configuration.
 start_galera() {
-  log "Starting Galera node (single, bootstrap)..."
-  local extra=()
-  if [ -n "${GALERIA_BACKUP_SCHEDULE:-}" ]; then
-    extra+=(-e "GALERIA_BACKUP_SCHEDULE=${GALERIA_BACKUP_SCHEDULE}")
+  local mode="backup"
+  if [ "${1:-}" = "--clone" ]; then
+    mode="clone"
+    shift
   fi
-  docker run -d \
-    --name "$GALERA_NAME" \
-    --hostname galera1 \
-    --network "$NET_NAME" \
-    -e GALERIA_ROOT_PASSWORD="$PASS" \
-    -e GALERIA_PEERS=galera1 \
-    -e GALERIA_CLUSTER_NAME=galera_cluster \
-    -e GALERIA_BOOTSTRAP_CANDIDATE=galera1 \
-    -e GALERIA_BACKUP_S3_URI="s3://${S3_BUCKET}/${S3_PREFIX}" \
-    -e AWS_ENDPOINT_URL="http://${MINIO_NAME}:9000" \
-    -e AWS_ACCESS_KEY_ID="$MINIO_ACCESS" \
-    -e AWS_SECRET_ACCESS_KEY="$MINIO_SECRET" \
-    -e AWS_DEFAULT_REGION=us-east-1 \
-    "${extra[@]}" \
-    "$IMAGE"
-}
 
-start_galera_clone() {
-  log "Starting Galera node (single, bootstrap) with clone..."
-  local extra=()
-  if [ -n "${GALERIA_CLONE_FROM:-}" ]; then
-    extra+=(-e "GALERIA_CLONE_FROM=${GALERIA_CLONE_FROM}")
+  local env_args=(
+    -e GALERIA_ROOT_PASSWORD="$PASS"
+    -e GALERIA_PEERS=galera1
+    -e GALERIA_CLUSTER_NAME=galera_cluster
+    -e GALERIA_BOOTSTRAP_CANDIDATE=galera1
+  )
+
+  if [ "$mode" = "backup" ]; then
+    env_args+=(-e GALERIA_BACKUP_S3_URI="s3://${S3_BUCKET}/${S3_PREFIX}")
+    env_args+=(-e AWS_ENDPOINT_URL="http://${MINIO_NAME}:9000")
+    env_args+=(-e AWS_ACCESS_KEY_ID="$MINIO_ACCESS")
+    env_args+=(-e AWS_SECRET_ACCESS_KEY="$MINIO_SECRET")
+    env_args+=(-e AWS_DEFAULT_REGION=us-east-1)
+    [ -n "${GALERIA_BACKUP_SCHEDULE:-}" ] && env_args+=(-e "GALERIA_BACKUP_SCHEDULE=${GALERIA_BACKUP_SCHEDULE}")
+  else
+    env_args+=(-e GALERIA_CLONE_BACKUP_S3_URI="s3://${S3_BUCKET}/${S3_PREFIX}")
+    env_args+=(-e CLONE_AWS_ENDPOINT_URL="http://${MINIO_NAME}:9000")
+    env_args+=(-e CLONE_AWS_ACCESS_KEY_ID="$MINIO_ACCESS")
+    env_args+=(-e CLONE_AWS_SECRET_ACCESS_KEY="$MINIO_SECRET")
+    env_args+=(-e CLONE_AWS_DEFAULT_REGION=us-east-1)
+    [ -n "${GALERIA_CLONE_FROM:-}" ] && env_args+=(-e "GALERIA_CLONE_FROM=${GALERIA_CLONE_FROM}")
   fi
+
+  log "Starting Galera node (single, bootstrap, mode=$mode)..."
   docker run -d \
     --name "$GALERA_NAME" \
     --hostname galera1 \
     --network "$NET_NAME" \
-    -e GALERIA_ROOT_PASSWORD="$PASS" \
-    -e GALERIA_PEERS=galera1 \
-    -e GALERIA_CLUSTER_NAME=galera_cluster \
-    -e GALERIA_BOOTSTRAP_CANDIDATE=galera1 \
-    -e GALERIA_CLONE_BACKUP_S3_URI="s3://${S3_BUCKET}/${S3_PREFIX}" \
-    -e CLONE_AWS_ENDPOINT_URL="http://${MINIO_NAME}:9000" \
-    -e CLONE_AWS_ACCESS_KEY_ID="$MINIO_ACCESS" \
-    -e CLONE_AWS_SECRET_ACCESS_KEY="$MINIO_SECRET" \
-    -e CLONE_AWS_DEFAULT_REGION=us-east-1 \
-    "${extra[@]}" \
+    "${env_args[@]}" \
     "$IMAGE"
 }
 
 wait_mysql_ready() {
   log "Waiting for MySQL readiness (up to 120s)..."
-  local elapsed=0
-  while [ "$elapsed" -lt 120 ]; do
-    if docker exec "$GALERA_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/dev/null; then
-      return 0
-    fi
-    sleep 1
-    elapsed=$((elapsed + 1))
-  done
-  log "MySQL did not become ready"
-  return 1
+  poll_until "MySQL" 120 \
+    docker exec "$GALERA_NAME" mariadb -u root -p"$PASS" -e "SELECT 1"
 }
 
 wait_synced() {

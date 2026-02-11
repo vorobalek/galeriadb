@@ -1,22 +1,28 @@
 #!/usr/bin/env bash
 
-if [ -n "${GALERIA_BACKUP_SCHEDULE:-}" ] && { [ -n "${GALERIA_BACKUP_S3_URI:-}" ] || [ -n "${GALERIA_BACKUP_S3_BUCKET:-}" ]; }; then
+if [ -n "${GALERIA_BACKUP_SCHEDULE:-}" ] && backup_configured; then
   log "Enabling backup cron: $GALERIA_BACKUP_SCHEDULE"
+
+  BACKUP_ENV_VARS=(
+    GALERIA_ROOT_PASSWORD
+    GALERIA_BACKUP_S3_URI
+    GALERIA_BACKUP_S3_BUCKET
+    GALERIA_BACKUP_S3_PATH
+    GALERIA_BACKUP_TMPDIR
+    GALERIA_BACKUP_RETENTION_DAYS
+    AWS_ACCESS_KEY_ID
+    AWS_SECRET_ACCESS_KEY
+    AWS_DEFAULT_REGION
+    AWS_REGION
+    AWS_ENDPOINT_URL
+  )
 
   ENV_FILE="/run/galera-backup.env"
   {
     echo "export PATH=\"/usr/local/bin:/usr/bin:/bin:\$PATH\""
-    echo "export GALERIA_ROOT_PASSWORD=\"${GALERIA_ROOT_PASSWORD}\""
-    [ -n "${GALERIA_BACKUP_S3_URI:-}" ] && echo "export GALERIA_BACKUP_S3_URI=\"${GALERIA_BACKUP_S3_URI}\""
-    [ -n "${GALERIA_BACKUP_S3_BUCKET:-}" ] && echo "export GALERIA_BACKUP_S3_BUCKET=\"${GALERIA_BACKUP_S3_BUCKET}\""
-    [ -n "${GALERIA_BACKUP_S3_PATH:-}" ] && echo "export GALERIA_BACKUP_S3_PATH=\"${GALERIA_BACKUP_S3_PATH}\""
-    [ -n "${GALERIA_BACKUP_TMPDIR:-}" ] && echo "export GALERIA_BACKUP_TMPDIR=\"${GALERIA_BACKUP_TMPDIR}\""
-    [ -n "${GALERIA_BACKUP_RETENTION_DAYS:-}" ] && echo "export GALERIA_BACKUP_RETENTION_DAYS=\"${GALERIA_BACKUP_RETENTION_DAYS}\""
-    [ -n "${AWS_ACCESS_KEY_ID:-}" ] && echo "export AWS_ACCESS_KEY_ID=\"${AWS_ACCESS_KEY_ID}\""
-    [ -n "${AWS_SECRET_ACCESS_KEY:-}" ] && echo "export AWS_SECRET_ACCESS_KEY=\"${AWS_SECRET_ACCESS_KEY}\""
-    [ -n "${AWS_DEFAULT_REGION:-}" ] && echo "export AWS_DEFAULT_REGION=\"${AWS_DEFAULT_REGION}\""
-    [ -n "${AWS_REGION:-}" ] && echo "export AWS_REGION=\"${AWS_REGION}\""
-    [ -n "${AWS_ENDPOINT_URL:-}" ] && echo "export AWS_ENDPOINT_URL=\"${AWS_ENDPOINT_URL}\""
+    for var in "${BACKUP_ENV_VARS[@]}"; do
+      [ -n "${!var:-}" ] && echo "export ${var}=\"${!var}\""
+    done
   } >"$ENV_FILE"
   chmod 600 "$ENV_FILE"
 

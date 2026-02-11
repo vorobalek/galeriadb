@@ -33,15 +33,6 @@ find_synced_peer() {
   return 1
 }
 
-read_local_seqno() {
-  local grastate="${DATA_DIR}/grastate.dat"
-  if [ -f "$grastate" ]; then
-    awk -F: '/^seqno:/{gsub(/[[:space:]]/, "", $2); print $2}' "$grastate" 2>/dev/null || echo "-1"
-  else
-    echo "-1"
-  fi
-}
-
 PEER_NAMES="${GALERIA_PEERS}"
 HOSTNAME="$(hostname)"
 log "HOSTNAME=$HOSTNAME peers=$PEER_NAMES candidate=${GALERIA_BOOTSTRAP_CANDIDATE:-none}"
