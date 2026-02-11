@@ -80,14 +80,16 @@ export WSREP_NODE_ADDRESS="$IP_ADDRESS"
 
 CLUSTER_ADDRESS=""
 AM_I_BOOTSTRAP=0
+CLUSTER_LIST=$(echo "$PEER_NAMES" | tr ',' '\n' | sed 's/$/:4567/' | tr '\n' ',' | sed 's/,$//')
+JOIN_ADDRESS="gcomm://${CLUSTER_LIST}?pc.wait_prim=yes"
 
 if [ -n "$SYNCED_PEER_IP" ]; then
   log "Found existing Synced peer at $SYNCED_PEER_IP -> joining"
   CLUSTER_ADDRESS="gcomm://${SYNCED_PEER_IP}:4567?pc.wait_prim=yes"
-elif [ "${GALERIA_CONSENSUS_BOOTSTRAP:-}" = "true" ]; then
+elif [ "${GALERIA_CONSENSUS_BOOTSTRAP:-}" = "on" ]; then
   # --- Consensus bootstrap: elect leader based on grastate seqno ---
   log "Consensus bootstrap: starting seqno exchange on port 9201"
-  socat -T 2 TCP-LISTEN:9201,reuseaddr,fork SYSTEM:"${SCRIPT_DIR}/galera-seqno-server.sh" 2>/dev/null &
+  socat -T 2 TCP-LISTEN:9201,reuseaddr,fork SYSTEM:"${SCRIPT_DIR}/galera-http-seqno.sh" 2>/dev/null &
   SEQNO_SERVER_PID=$!
 
   own_seqno=$(read_local_seqno)
@@ -112,7 +114,7 @@ elif [ "${GALERIA_CONSENSUS_BOOTSTRAP:-}" = "true" ]; then
           best_seqno="$peer_seqno"
         fi
       fi
-    done <<< "$IPS"
+    done <<<"$IPS"
     sleep "${GALERIA_DISCOVERY_INTERVAL}"
   done
 
@@ -124,8 +126,7 @@ elif [ "${GALERIA_CONSENSUS_BOOTSTRAP:-}" = "true" ]; then
     AM_I_BOOTSTRAP=1
     CLUSTER_ADDRESS="gcomm://"
   else
-    CLUSTER_LIST=$(echo "$PEER_NAMES" | tr ',' '\n' | sed 's/$/:4567/' | tr '\n' ',' | sed 's/,$//')
-    CLUSTER_ADDRESS="gcomm://${CLUSTER_LIST}?pc.wait_prim=yes"
+    CLUSTER_ADDRESS="$JOIN_ADDRESS"
     log "Consensus: $best_host has highest seqno ($best_seqno) -> joining: $CLUSTER_ADDRESS"
   fi
 else
@@ -135,8 +136,7 @@ else
     AM_I_BOOTSTRAP=1
     CLUSTER_ADDRESS="gcomm://"
   else
-    CLUSTER_LIST=$(echo "$PEER_NAMES" | tr ',' '\n' | sed 's/$/:4567/' | tr '\n' ',' | sed 's/,$//')
-    CLUSTER_ADDRESS="gcomm://${CLUSTER_LIST}?pc.wait_prim=yes"
+    CLUSTER_ADDRESS="$JOIN_ADDRESS"
     log "No existing cluster detected. Not a candidate -> joining and waiting primary: $CLUSTER_ADDRESS"
   fi
 fi

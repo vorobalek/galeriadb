@@ -3,19 +3,15 @@
 
 set -euo pipefail
 
-log() { echo "[$(date -Is)] $*"; }
+# shellcheck source=galera-lib.sh
+source "$(dirname "$0")/galera-lib.sh"
 
 : "${GALERIA_ROOT_PASSWORD:?GALERIA_ROOT_PASSWORD is required for backup}"
 MYSQL_PWD="${GALERIA_ROOT_PASSWORD}"
 
-if [ -n "${GALERIA_BACKUP_S3_URI:-}" ]; then
-  S3_BASE="${GALERIA_BACKUP_S3_URI}"
-elif [ -n "${GALERIA_BACKUP_S3_BUCKET:-}" ]; then
-  S3_BASE="s3://${GALERIA_BACKUP_S3_BUCKET}/${GALERIA_BACKUP_S3_PATH:-mariadb}"
-else
-  log "ERROR: Set GALERIA_BACKUP_S3_URI or GALERIA_BACKUP_S3_BUCKET to enable S3 backup"
-  exit 1
-fi
+resolve_s3_base \
+  GALERIA_BACKUP_S3_URI GALERIA_BACKUP_S3_BUCKET GALERIA_BACKUP_S3_PATH mariadb \
+  "Set GALERIA_BACKUP_S3_URI or GALERIA_BACKUP_S3_BUCKET to enable S3 backup"
 
 HOST="${HOSTNAME:-unknown}"
 TS="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
@@ -37,8 +33,7 @@ mariadb-backup --backup \
 tar -C "$TMP" -czf "$OUT" .
 
 # Retention uses S3 LastModified (from aws s3 ls), not filenames.
-AWS_OPTS=()
-[ -n "${AWS_ENDPOINT_URL:-}" ] && AWS_OPTS+=(--endpoint-url "$AWS_ENDPOINT_URL")
+build_aws_opts AWS_ENDPOINT_URL
 # Do not abort if ls/rm fails (e.g. first run, no prefix yet).
 if [ -n "${GALERIA_BACKUP_RETENTION_DAYS:-}" ] && [ "$GALERIA_BACKUP_RETENTION_DAYS" -gt 0 ] 2>/dev/null; then
   CUTOFF="${GALERIA_BACKUP_RETENTION_CUTOFF_OVERRIDE:-$(date -u -d "now - ${GALERIA_BACKUP_RETENTION_DAYS} days" +%Y-%m-%d 2>/dev/null)}"

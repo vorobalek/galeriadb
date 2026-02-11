@@ -1,6 +1,9 @@
 schemaVersion: "2.0.0"
 
 fileExistenceTests:
+  - name: "common lib exists"
+    path: "/usr/local/bin/common.sh"
+    shouldExist: true
   - name: "entrypoint exists"
     path: "/usr/local/bin/entrypoint.sh"
     shouldExist: true
@@ -40,11 +43,17 @@ fileExistenceTests:
   - name: "entrypoint backup-cron stage exists"
     path: "/usr/local/bin/entrypoint.d/90-backup-cron.sh"
     shouldExist: true
-  - name: "galera-healthcheck exists"
-    path: "/usr/local/bin/galera-healthcheck.sh"
+  - name: "galera-lib exists"
+    path: "/usr/local/bin/galera-lib.sh"
     shouldExist: true
-  - name: "galera-seqno-server exists"
-    path: "/usr/local/bin/galera-seqno-server.sh"
+  - name: "galera-http-lib exists"
+    path: "/usr/local/bin/galera-http-lib.sh"
+    shouldExist: true
+  - name: "galera-http-health exists"
+    path: "/usr/local/bin/galera-http-health.sh"
+    shouldExist: true
+  - name: "galera-http-seqno exists"
+    path: "/usr/local/bin/galera-http-seqno.sh"
     shouldExist: true
   - name: "galera-backup exists"
     path: "/usr/local/bin/galera-backup.sh"

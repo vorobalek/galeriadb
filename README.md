@@ -44,7 +44,7 @@ The container exits immediately if any required variable is missing or empty.
 | --- | --- | --- |
 | `GALERIA_PEERS` | Comma-separated peer list. Use Compose service names, Swarm task names (`tasks.galera`), or IPs/hostnames. | `galera1,galera2,galera3` / `tasks.galera` / `10.0.0.1,10.0.0.2` |
 | `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user (no default). | `secret` |
-| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that may bootstrap a new cluster when none is found. Must match one of your node hostnames. Not required when `GALERIA_CONSENSUS_BOOTSTRAP=true`. | `galera1` |
+| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that may bootstrap a new cluster when none is found. Must match one of your node hostnames. Not required when `GALERIA_CONSENSUS_BOOTSTRAP=on`. | `galera1` |
 
 ### Cluster and discovery
 
@@ -68,7 +68,7 @@ Instead of a static bootstrap candidate, the cluster can automatically elect a l
 
 | Variable | Description | Default |
 | --- | --- | --- |
-| `GALERIA_CONSENSUS_BOOTSTRAP` | Set to `true` to enable consensus-based bootstrap election. When enabled, `GALERIA_BOOTSTRAP_CANDIDATE` is optional. | — |
+| `GALERIA_CONSENSUS_BOOTSTRAP` | Set to `on` to enable consensus-based bootstrap election. When enabled, `GALERIA_BOOTSTRAP_CANDIDATE` is optional. | — |
 | `GALERIA_CONSENSUS_TIMEOUT` | Seconds to exchange sequence numbers with peers before deciding. | `10` |
 
 Consensus behavior:

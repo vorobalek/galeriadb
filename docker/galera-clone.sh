@@ -3,19 +3,14 @@
 
 set -euo pipefail
 
-log() { echo "[$(date -Is)] $*"; }
+# shellcheck source=galera-lib.sh
+source "$(dirname "$0")/galera-lib.sh"
 
-if [ -n "${GALERIA_CLONE_BACKUP_S3_URI:-}" ]; then
-  S3_BASE="${GALERIA_CLONE_BACKUP_S3_URI}"
-elif [ -n "${GALERIA_CLONE_BACKUP_S3_BUCKET:-}" ]; then
-  S3_BASE="s3://${GALERIA_CLONE_BACKUP_S3_BUCKET}/${GALERIA_CLONE_BACKUP_S3_PATH:-mariadb}"
-else
-  log "ERROR: Set GALERIA_CLONE_BACKUP_S3_URI or GALERIA_CLONE_BACKUP_S3_BUCKET to enable restore"
-  exit 1
-fi
+resolve_s3_base \
+  GALERIA_CLONE_BACKUP_S3_URI GALERIA_CLONE_BACKUP_S3_BUCKET GALERIA_CLONE_BACKUP_S3_PATH mariadb \
+  "Set GALERIA_CLONE_BACKUP_S3_URI or GALERIA_CLONE_BACKUP_S3_BUCKET to enable restore"
 
-AWS_OPTS=()
-[ -n "${CLONE_AWS_ENDPOINT_URL:-}" ] && AWS_OPTS+=(--endpoint-url "$CLONE_AWS_ENDPOINT_URL")
+build_aws_opts CLONE_AWS_ENDPOINT_URL
 
 aws_env=()
 [ -n "${CLONE_AWS_ACCESS_KEY_ID:-}" ] && aws_env+=(AWS_ACCESS_KEY_ID="$CLONE_AWS_ACCESS_KEY_ID")

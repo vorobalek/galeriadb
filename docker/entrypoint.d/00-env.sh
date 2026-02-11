@@ -2,7 +2,7 @@
 
 require_env GALERIA_PEERS GALERIA_ROOT_PASSWORD
 
-if [ "${GALERIA_CONSENSUS_BOOTSTRAP:-}" != "true" ]; then
+if [ "${GALERIA_CONSENSUS_BOOTSTRAP:-}" != "on" ]; then
   require_env GALERIA_BOOTSTRAP_CANDIDATE
 fi
 

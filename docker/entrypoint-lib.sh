@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DATA_DIR="/var/lib/mysql"
-export DATA_DIR
-
-log() { echo "[$(date -Is)] $*"; }
+# shellcheck source=common.sh
+source "$(dirname "$0")/common.sh"
 
 require_env() {
   local var

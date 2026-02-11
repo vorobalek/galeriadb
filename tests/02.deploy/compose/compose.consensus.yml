@@ -6,7 +6,7 @@ services:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
       GALERIA_CLUSTER_NAME: galera_cluster
-      GALERIA_CONSENSUS_BOOTSTRAP: "true"
+      GALERIA_CONSENSUS_BOOTSTRAP: "on"
       GALERIA_CONSENSUS_TIMEOUT: "15"
     volumes:
       - galera1_data:/var/lib/mysql
@@ -28,7 +28,7 @@ services:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
       GALERIA_CLUSTER_NAME: galera_cluster
-      GALERIA_CONSENSUS_BOOTSTRAP: "true"
+      GALERIA_CONSENSUS_BOOTSTRAP: "on"
       GALERIA_CONSENSUS_TIMEOUT: "15"
     volumes:
       - galera2_data:/var/lib/mysql
@@ -50,7 +50,7 @@ services:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
       GALERIA_CLUSTER_NAME: galera_cluster
-      GALERIA_CONSENSUS_BOOTSTRAP: "true"
+      GALERIA_CONSENSUS_BOOTSTRAP: "on"
       GALERIA_CONSENSUS_TIMEOUT: "15"
     volumes:
       - galera3_data:/var/lib/mysql
