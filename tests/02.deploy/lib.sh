@@ -1,18 +1,9 @@
 #!/usr/bin/env bash
 wait_galera1_ready() {
-  local elapsed=0
   log "Waiting for galera1 MySQL (up to 60s)..."
-  while [ "$elapsed" -lt 60 ]; do
-    if docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" exec -T galera1 \
-      mariadb -u root -p"$PASS" -e "SELECT 1" &>/dev/null; then
-      log "galera1 MySQL ready"
-      return 0
-    fi
-    sleep 1
-    elapsed=$((elapsed + 1))
-  done
-  log "galera1 did not become ready in time"
-  return 1
+  poll_until "galera1 MySQL" 60 \
+    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" exec -T galera1 \
+    mariadb -u root -p"$PASS" -e "SELECT 1"
 }
 
 wait_cluster_3() {

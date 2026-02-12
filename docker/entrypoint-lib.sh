@@ -1,10 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DATA_DIR="/var/lib/mysql"
-export DATA_DIR
-
-log() { echo "[$(date -Is)] $*"; }
+# shellcheck source=common.sh
+source "$(dirname "$0")/common.sh"
 
 require_env() {
   local var
@@ -39,6 +37,21 @@ wait_for_mysql() {
       return 0
     fi
     sleep 1
+  done
+  return 1
+}
+
+wait_for_synced() {
+  local timeout="${1:-120}"
+  local elapsed=0 state ready
+  while [ "$elapsed" -lt "$timeout" ]; do
+    state=$(mariadb -u root -Nse "SHOW GLOBAL STATUS LIKE 'wsrep_local_state_comment'" 2>/dev/null | awk '{print $2}' || echo "")
+    ready=$(mariadb -u root -Nse "SHOW GLOBAL STATUS LIKE 'wsrep_ready'" 2>/dev/null | awk '{print $2}' || echo "")
+    if [ "$state" = "Synced" ] && [ "$ready" = "ON" ]; then
+      return 0
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
   done
   return 1
 }

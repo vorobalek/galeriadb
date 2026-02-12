@@ -46,17 +46,9 @@ start_node() {
 wait_mysql_ready_named() {
   local name="$1"
   local timeout="${2:-120}"
-  local elapsed=0
   log "Waiting for $name MySQL (up to ${timeout}s)..."
-  while [ "$elapsed" -lt "$timeout" ]; do
-    if docker exec "$name" mariadb -u root -p"$PASS" -e "SELECT 1" &>/dev/null; then
-      return 0
-    fi
-    sleep 1
-    elapsed=$((elapsed + 1))
-  done
-  log "$name MySQL did not become ready"
-  return 1
+  poll_until "$name MySQL" "$timeout" \
+    docker exec "$name" mariadb -u root -p"$PASS" -e "SELECT 1"
 }
 
 wait_synced_named() {

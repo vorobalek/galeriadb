@@ -44,14 +44,18 @@ RUN curl -sSfL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -
     && rm -rf /var/lib/apt/lists/*
 
 COPY galera.cnf.template /etc/mysql/conf.d/galera.cnf.template
+COPY common.sh /usr/local/bin/common.sh
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY entrypoint-lib.sh /usr/local/bin/entrypoint-lib.sh
 COPY entrypoint.d/ /usr/local/bin/entrypoint.d/
-COPY galera-healthcheck.sh /usr/local/bin/galera-healthcheck.sh
+COPY galera-lib.sh /usr/local/bin/galera-lib.sh
+COPY galera-http-lib.sh /usr/local/bin/galera-http-lib.sh
+COPY galera-http-health.sh /usr/local/bin/galera-http-health.sh
+COPY galera-http-seqno.sh /usr/local/bin/galera-http-seqno.sh
 COPY galera-backup.sh /usr/local/bin/galera-backup.sh
 COPY galera-clone.sh /usr/local/bin/galera-clone.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/entrypoint-lib.sh /usr/local/bin/entrypoint.d/*.sh /usr/local/bin/galera-healthcheck.sh /usr/local/bin/galera-backup.sh /usr/local/bin/galera-clone.sh \
+RUN chmod +x /usr/local/bin/common.sh /usr/local/bin/entrypoint.sh /usr/local/bin/entrypoint-lib.sh /usr/local/bin/entrypoint.d/*.sh /usr/local/bin/galera-lib.sh /usr/local/bin/galera-http-lib.sh /usr/local/bin/galera-http-health.sh /usr/local/bin/galera-http-seqno.sh /usr/local/bin/galera-backup.sh /usr/local/bin/galera-clone.sh \
     && chown -R mysql:mysql /etc/mysql /var/lib/mysql /var/run/mysqld 2>/dev/null || true \
     && mkdir -p /var/run/mysqld && chown mysql:mysql /var/run/mysqld
 

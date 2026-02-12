@@ -14,6 +14,7 @@ Branch `main` tracks MariaDB 12.1. Older versions are available in versioned bra
 ## Features
 
 - Cluster discovery from `GALERIA_PEERS` with bootstrap candidate logic.
+- Consensus bootstrap: automatic leader election based on `grastate.dat` sequence numbers.
 - HAProxy-friendly health check on port 9200 (Synced + wsrep_ready=ON).
 - Hot backups to S3 with optional retention and cron scheduling.
 - Restore (clone) from S3 when the data directory is empty.
@@ -43,7 +44,7 @@ The container exits immediately if any required variable is missing or empty.
 | --- | --- | --- |
 | `GALERIA_PEERS` | Comma-separated peer list. Use Compose service names, Swarm task names (`tasks.galera`), or IPs/hostnames. | `galera1,galera2,galera3` / `tasks.galera` / `10.0.0.1,10.0.0.2` |
 | `GALERIA_ROOT_PASSWORD` | Password for MariaDB `root` user (no default). | `secret` |
-| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that may bootstrap a new cluster when none is found. Must match one of your node hostnames. | `galera1` |
+| `GALERIA_BOOTSTRAP_CANDIDATE` | Hostname of the node that may bootstrap a new cluster when none is found. Must match one of your node hostnames. Not required when `GALERIA_CONSENSUS_BOOTSTRAP=on`. | `galera1` |
 
 ### Cluster and discovery
 
@@ -60,6 +61,22 @@ Discovery behavior:
 - If a Synced node is found, this node joins it.
 - If none is found within the discovery window, only the bootstrap candidate starts a new cluster; other nodes join and wait for primary.
 - In Swarm or Kubernetes, peer DNS may be empty during the first task start. The discovery window avoids long waits while still allowing late joiners.
+
+### Consensus bootstrap
+
+Instead of a static bootstrap candidate, the cluster can automatically elect a leader based on `grastate.dat` sequence numbers. The node with the highest `seqno` bootstraps, ensuring the most up-to-date node leads after a full cluster restart. Ties are broken by lexicographic hostname order.
+
+| Variable | Description | Default |
+| --- | --- | --- |
+| `GALERIA_CONSENSUS_BOOTSTRAP` | Set to `on` to enable consensus-based bootstrap election. When enabled, `GALERIA_BOOTSTRAP_CANDIDATE` is optional. | — |
+| `GALERIA_CONSENSUS_TIMEOUT` | Seconds to exchange sequence numbers with peers before deciding. | `10` |
+
+Consensus behavior:
+
+- After the normal discovery window finds no Synced peer, each node starts a temporary HTTP endpoint on port 9201 reporting its `hostname:seqno`.
+- Nodes query all resolved peers for their sequence numbers during the consensus timeout window.
+- The node with the highest `seqno` self-elects as bootstrap candidate. Equal sequence numbers are resolved by lexicographic hostname order (lowest wins).
+- On a fresh cluster (no `grastate.dat`), all nodes report `seqno=-1` and the node with the lowest hostname bootstraps.
 
 ### Health check
 

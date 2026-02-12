@@ -4,7 +4,7 @@ docker rm -f "$GALERA_NAME" 2>/dev/null || true
 docker rm -f "$MINIO_NAME" 2>/dev/null || true
 
 start_minio
-start_galera_clone
+start_galera --clone
 
 log "Waiting for clone attempt to fail (up to 60s)..."
 elapsed=0

@@ -5,21 +5,35 @@ set -euo pipefail
 
 ARTIFACTS_DIR="${ARTIFACTS_DIR:-./artifacts}"
 
-log() { echo "[$(date '+%Y-%m-%dT%H:%M:%S%z')] $*"; }
+log() { echo "[$(date -Is)] $*"; }
 
-wait_http_ok() {
-  local url="$1"
-  local timeout="${2:-30}"
+require_image() {
+  local image="$1"
+  docker image inspect "$image" >/dev/null 2>&1 || {
+    log "Image $image not found. Run 'make build' first."
+    exit 1
+  }
+}
+
+poll_until() {
+  local label="$1" timeout="$2"
+  shift 2
   local elapsed=0
   while [ "$elapsed" -lt "$timeout" ]; do
-    if curl -sf --max-time 5 "$url" >/dev/null 2>&1; then
+    if "$@" >/dev/null 2>&1; then
       return 0
     fi
     sleep 1
     elapsed=$((elapsed + 1))
   done
-  log "wait_http_ok: $url did not return 200 within ${timeout}s"
+  log "poll_until: ${label} did not succeed within ${timeout}s"
   return 1
+}
+
+wait_http_ok() {
+  local url="$1"
+  local timeout="${2:-30}"
+  poll_until "HTTP $url" "$timeout" curl -sf --max-time 5 "$url"
 }
 
 wait_mysql() {
@@ -28,16 +42,7 @@ wait_mysql() {
   local user="$3"
   local pass="$4"
   local timeout="${5:-60}"
-  local elapsed=0
-  while [ "$elapsed" -lt "$timeout" ]; do
-    if mariadb -h "$host" -P "$port" -u "$user" -p"$pass" -e "SELECT 1" &>/dev/null; then
-      return 0
-    fi
-    sleep 1
-    elapsed=$((elapsed + 1))
-  done
-  log "wait_mysql: $host:$port did not become ready within ${timeout}s"
-  return 1
+  poll_until "MySQL $host:$port" "$timeout" mariadb -h "$host" -P "$port" -u "$user" -p"$pass" -e "SELECT 1"
 }
 
 retry() {
