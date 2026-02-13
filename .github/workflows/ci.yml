@@ -63,13 +63,6 @@ jobs:
       - name: Build dev image
         run: docker build -t galeriadb/dev:ci -f docker/Dockerfile.dev .
 
-      - name: Cache Trivy vulnerability DB
-        uses: actions/cache@v5
-        with:
-          path: .cache/trivy
-          key: trivy-db-${{ runner.os }}
-          restore-keys: trivy-db-
-
       - name: Run all tests
         run: |
           mkdir -p .cache/trivy
@@ -83,10 +76,6 @@ jobs:
             -e HOST_WORKSPACE="${{ github.workspace }}" \
             galeriadb/dev:ci \
             make ci
-
-      - name: Fix Trivy cache permissions for cache save
-        if: success() || failure()
-        run: sudo chown -R "$(id -u):$(id -g)" .cache/trivy 2>/dev/null || true
 
       - name: Collect diagnostics on failure
         if: failure()

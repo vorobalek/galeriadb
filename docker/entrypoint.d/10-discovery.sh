@@ -77,51 +77,7 @@ JOIN_ADDRESS="gcomm://${CLUSTER_LIST}?pc.wait_prim=yes"
 if [ -n "$SYNCED_PEER_IP" ]; then
   log "Found existing Synced peer at $SYNCED_PEER_IP -> joining"
   CLUSTER_ADDRESS="gcomm://${SYNCED_PEER_IP}:4567?pc.wait_prim=yes"
-elif [ "${GALERIA_CONSENSUS_BOOTSTRAP:-}" = "on" ]; then
-  # --- Consensus bootstrap: elect leader based on grastate seqno ---
-  log "Consensus bootstrap: starting seqno exchange on port 9201"
-  socat -T 2 TCP-LISTEN:9201,reuseaddr,fork SYSTEM:"${SCRIPT_DIR}/galera-http-seqno.sh" 2>/dev/null &
-  SEQNO_SERVER_PID=$!
-
-  own_seqno=$(read_local_seqno)
-  best_host="$HOSTNAME"
-  best_seqno="$own_seqno"
-  log "Consensus: own seqno=$own_seqno"
-
-  consensus_deadline=$(($(date +%s) + ${GALERIA_CONSENSUS_TIMEOUT:-10}))
-  while [ "$(date +%s)" -lt "$consensus_deadline" ]; do
-    IPS="$(resolve_peers_ips || true)"
-    while read -r ip; do
-      [ -z "$ip" ] && continue
-      result=$(curl -sf --connect-timeout 1 --max-time 2 "http://${ip}:9201/" 2>/dev/null || echo "")
-      if [ -n "$result" ]; then
-        peer_host="${result%%:*}"
-        peer_seqno="${result##*:}"
-        if [ "$peer_seqno" -gt "$best_seqno" ] 2>/dev/null; then
-          best_host="$peer_host"
-          best_seqno="$peer_seqno"
-        elif [ "$peer_seqno" = "$best_seqno" ] && [[ "$peer_host" < "$best_host" ]]; then
-          best_host="$peer_host"
-          best_seqno="$peer_seqno"
-        fi
-      fi
-    done <<<"$IPS"
-    sleep "${GALERIA_DISCOVERY_INTERVAL}"
-  done
-
-  kill "$SEQNO_SERVER_PID" 2>/dev/null || true
-  wait "$SEQNO_SERVER_PID" 2>/dev/null || true
-
-  if [ "$best_host" = "$HOSTNAME" ]; then
-    log "Consensus: I ($HOSTNAME) have highest seqno ($best_seqno) -> bootstrapping"
-    AM_I_BOOTSTRAP=1
-    CLUSTER_ADDRESS="gcomm://"
-  else
-    CLUSTER_ADDRESS="$JOIN_ADDRESS"
-    log "Consensus: $best_host has highest seqno ($best_seqno) -> joining: $CLUSTER_ADDRESS"
-  fi
 else
-  # --- Static bootstrap candidate ---
   if [ "$HOSTNAME" = "${GALERIA_BOOTSTRAP_CANDIDATE:-}" ]; then
     log "No existing cluster detected. I am bootstrap candidate -> bootstrapping"
     AM_I_BOOTSTRAP=1
