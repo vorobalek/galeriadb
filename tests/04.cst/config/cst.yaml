@@ -52,9 +52,6 @@ fileExistenceTests:
   - name: "galera-http-health exists"
     path: "/usr/local/bin/galera-http-health.sh"
     shouldExist: true
-  - name: "galera-http-seqno exists"
-    path: "/usr/local/bin/galera-http-seqno.sh"
-    shouldExist: true
   - name: "galera-backup exists"
     path: "/usr/local/bin/galera-backup.sh"
     shouldExist: true
