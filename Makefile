@@ -11,11 +11,6 @@ ARTIFACTS_DIR ?= ./artifacts
 SH_FILES := $(shell find docker tests -name '*.sh' 2>/dev/null || true)
 DOCKERFILES := $(shell find . -name 'Dockerfile' -not -path './.git/*' 2>/dev/null || true)
 
-.PHONY: help lint lint-docker lint-cst-coverage build build-dev ci ci-docker swarm cst security test-smoke test-deploy test-backup-s3 test clean
-
-help:
-	@echo "Targets: lint, lint-docker, build, build-dev, ci, ci-docker, swarm, cst, security, test-smoke, test-deploy, test-backup-s3, test"
-
 lint: lint-dockerfile lint-shell lint-shfmt lint-cst-coverage
 
 lint-dockerfile:
@@ -37,35 +32,6 @@ lint-cst-coverage:
 	@echo "--- CST coverage ---"
 	@./tests/04.cst/check-cst-coverage.sh
 
-lint-docker: build-dev
-	@echo "--- lint (in container) ---"
-	docker run --rm -v "$(CURDIR):/workspace" -w /workspace "$(DEV_IMAGE)" make lint
-
-build-dev:
-	@echo "--- build dev image $(DEV_IMAGE) ---"
-	docker build -t "$(DEV_IMAGE)" -f "$(DOCKERFILE_DEV)" .
-
-ci: lint build cst security test-smoke test-deploy test-backup-s3
-	@echo "--- CI passed ---"
-
-swarm: build
-	@echo "--- swarm sanity ---"
-	bash ./tests/05.swarm/entrypoint.sh
-
-ci-docker: build-dev
-	@echo "--- CI (in container, host Docker socket) ---"
-	docker run --rm \
-		-v "$(CURDIR):/workspace" \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-v trivy-cache:/root/.cache/trivy \
-		-w /workspace \
-		-e IMAGE="$(IMAGE)" \
-		-e ARTIFACTS_DIR="$(ARTIFACTS_DIR)" \
-		-e HOST_WORKSPACE="$(CURDIR)" \
-		"$(DEV_IMAGE)" make ci
-
-test-docker: ci-docker
-
 build:
 	@echo "--- build image $(IMAGE) ---"
 	docker build -t "$(IMAGE)" -f "$(DOCKERFILE)" "$(CONTEXT)"
@@ -77,12 +43,15 @@ cst: build
 security: build
 	@echo "--- trivy ---"
 	@command -v trivy >/dev/null 2>&1 || (echo "trivy not found" && exit 1)
-	trivy image --exit-code 1 --severity CRITICAL $(IMAGE)
+	@set -euo pipefail; \
+		tmpdir="$$(mktemp -d)"; \
+		cid="$$(docker create "$(IMAGE)")"; \
+		trap 'docker rm -f "$$cid" >/dev/null 2>&1 || true; rm -rf "$$tmpdir"' EXIT; \
+		docker export "$$cid" | tar -C "$$tmpdir" -xf -; \
+		trivy rootfs --scanners vuln --exit-code 1 --severity CRITICAL "$$tmpdir"
 	@echo "--- dockle ---"
 	@command -v dockle >/dev/null 2>&1 || (echo "dockle not found" && exit 1)
-	@docker save "$(IMAGE)" -o /tmp/dockle-image.tar
-	@dockle --exit-code 1 -i CIS-DI-0001 --input /tmp/dockle-image.tar
-	@rm -f /tmp/dockle-image.tar
+	@dockle --exit-code 1 -i CIS-DI-0001 "$(IMAGE)"
 
 test-smoke: build
 	@echo "--- smoke test ---"
@@ -96,8 +65,27 @@ test-backup-s3: build
 	@echo "--- S3 backup test (MinIO) ---"
 	./tests/03.backup-s3/entrypoint.sh "$(IMAGE)"
 
-test: ci
+ci: lint build cst security test-smoke test-deploy test-backup-s3
+	@echo "--- CI passed ---"
 
-clean:
-	@docker compose -f tests/02.deploy/compose/compose.test.yml -p galeriadb-test down -v --remove-orphans 2>/dev/null || true
-	@rm -rf "$(ARTIFACTS_DIR)"
+swarm: build
+	@echo "--- swarm sanity ---"
+	bash ./tests/05.swarm/entrypoint.sh
+
+build-dev:
+	@echo "--- build dev image $(DEV_IMAGE) ---"
+	docker build -t "$(DEV_IMAGE)" -f "$(DOCKERFILE_DEV)" .
+
+ci-docker: build-dev
+	@echo "--- CI (in container, host Docker socket) ---"
+	@sock="/var/run/docker.sock"; \
+		if [[ "$${DOCKER_HOST:-}" == unix://* ]]; then sock="$${DOCKER_HOST#unix://}"; fi; \
+		echo "Using Docker socket: $$sock"; \
+		docker run --rm \
+			-v "$(CURDIR):/workspace" \
+			-v "$$sock:/var/run/docker.sock" \
+			-w /workspace \
+			-e IMAGE="$(IMAGE)" \
+			-e ARTIFACTS_DIR="$(ARTIFACTS_DIR)" \
+			-e HOST_WORKSPACE="$(CURDIR)" \
+			"$(DEV_IMAGE)" make ci

@@ -57,30 +57,104 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Set up Docker daemon (disable containerd image store)
+        uses: docker/setup-docker-action@v4
+        with:
+          set-host: true
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": false
+              }
+            }
 
-      - name: Build dev image
-        run: docker build -t galeriadb/dev:ci -f docker/Dockerfile.dev .
+      - name: Show Docker info
+        run: |
+          echo "DOCKER_HOST=${DOCKER_HOST:-}"
+          docker version
+          docker info
 
       - name: Run all tests
-        run: |
-          mkdir -p .cache/trivy
-          docker run --rm \
-            -v "${{ github.workspace }}:/workspace" \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "${{ github.workspace }}/.cache/trivy:/root/.cache/trivy" \
-            -w /workspace \
-            -e IMAGE="${{ env.IMAGE }}" \
-            -e ARTIFACTS_DIR="${{ env.ARTIFACTS_DIR }}" \
-            -e HOST_WORKSPACE="${{ github.workspace }}" \
-            galeriadb/dev:ci \
-            make ci
+        run: make ci-docker
 
       - name: Collect diagnostics on failure
         if: failure()
         run: |
           mkdir -p "${{ env.ARTIFACTS_DIR }}"
+          {
+            echo "=== host: docker version ==="
+            docker version
+            echo
+            echo "=== host: docker info ==="
+            docker info
+            echo
+            echo "=== host: disk usage ==="
+            df -h
+            echo
+            echo "=== host: /tmp disk usage ==="
+            df -h /tmp
+          } > "${{ env.ARTIFACTS_DIR }}/host-env.txt" 2>&1 || true
+
+          docker image inspect "${{ env.IMAGE }}" > "${{ env.ARTIFACTS_DIR }}/image-inspect.json" 2>&1 || true
+
+          # Reproduce Trivy context in the same dev image used by make ci-docker.
+          DOCKER_SOCK="/var/run/docker.sock"
+          if [[ "${DOCKER_HOST:-}" == unix://* ]]; then
+            DOCKER_SOCK="${DOCKER_HOST#unix://}"
+          fi
+          echo "using_docker_socket=${DOCKER_SOCK}" > "${{ env.ARTIFACTS_DIR }}/docker-socket.txt"
+
+          docker run --rm \
+            -v "${{ github.workspace }}:/workspace" \
+            -v "${DOCKER_SOCK}:/var/run/docker.sock" \
+            -w /workspace \
+            -e IMAGE="${{ env.IMAGE }}" \
+            -e ARTIFACTS_DIR="/workspace/artifacts" \
+            galeriadb/dev:local \
+            bash -lc '
+              set -u
+              mkdir -p "$ARTIFACTS_DIR"
+
+              {
+                echo "=== dev-container: trivy version ==="
+                trivy --version
+                echo
+                echo "=== dev-container: docker version ==="
+                docker version
+                echo
+                echo "=== dev-container: docker info ==="
+                docker info
+                echo
+                echo "=== dev-container: disk usage ==="
+                df -h
+                echo
+                echo "=== dev-container: /tmp disk usage ==="
+                df -h /tmp
+              } > "$ARTIFACTS_DIR/trivy-env.txt" 2>&1 || true
+
+              docker save "$IMAGE" -o /tmp/trivy-image.tar 2>"$ARTIFACTS_DIR/docker-save.stderr" || true
+              ls -lh /tmp/trivy-image.tar > "$ARTIFACTS_DIR/docker-save-size.txt" 2>&1 || true
+              tar -tf /tmp/trivy-image.tar > "$ARTIFACTS_DIR/docker-save-tar-list.txt" 2>&1 || true
+              tar -xOf /tmp/trivy-image.tar manifest.json > "$ARTIFACTS_DIR/docker-save-manifest.json" 2>/dev/null || true
+
+              cfg="$(grep -oE "\"Config\"[[:space:]]*:[[:space:]]*\"[^\"]+\"" "$ARTIFACTS_DIR/docker-save-manifest.json" | head -n1 | sed -E "s/.*\"([^\"]+)\"$/\\1/")"
+              {
+                echo "manifest_config=$cfg"
+                if [ -n "$cfg" ]; then
+                  if tar -tf /tmp/trivy-image.tar | grep -Fxq "$cfg"; then
+                    echo "config_path_present=yes"
+                  elif tar -tf /tmp/trivy-image.tar | grep -Fxq "./$cfg"; then
+                    echo "config_path_present=only_with_dot_slash"
+                  else
+                    echo "config_path_present=no"
+                  fi
+                fi
+              } > "$ARTIFACTS_DIR/docker-save-manifest-check.txt" 2>&1 || true
+
+              TRIVY_DEBUG=true trivy image --scanners vuln "$IMAGE" > "$ARTIFACTS_DIR/trivy-debug.log" 2>&1 || true
+              rm -f /tmp/trivy-image.tar
+            ' || true
+
           docker ps -a > "${{ env.ARTIFACTS_DIR }}/docker-ps.txt" 2>&1 || true
           docker network ls > "${{ env.ARTIFACTS_DIR }}/docker-network-ls.txt" 2>&1 || true
           docker volume ls > "${{ env.ARTIFACTS_DIR }}/docker-volume-ls.txt" 2>&1 || true

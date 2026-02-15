@@ -12,6 +12,7 @@ source "${SCRIPT_DIR}/entrypoint-lib.sh"
 
 run_stage "00-env.sh" "${ORIG_ARGS[@]}"
 run_stage "10-discovery.sh" "${ORIG_ARGS[@]}"
+run_stage "15-precheck-primary.sh" "${ORIG_ARGS[@]}"
 run_stage "20-write-config.sh" "${ORIG_ARGS[@]}"
 run_stage "30-healthcheck.sh" "${ORIG_ARGS[@]}"
 run_stage "40-init-or-clone.sh" "${ORIG_ARGS[@]}"

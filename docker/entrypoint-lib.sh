@@ -32,11 +32,18 @@ clone_enabled() {
 }
 
 wait_for_mysql() {
-  for _ in $(seq 1 60); do
+  local timeout="${1:-60}"
+  local pid="${2:-}"
+  local elapsed=0
+  while [ "$elapsed" -lt "$timeout" ]; do
     if mariadb -u root -e "SELECT 1" &>/dev/null || mariadb -u root -p"$MYSQL_PWD" -h 127.0.0.1 -e "SELECT 1" &>/dev/null; then
       return 0
     fi
+    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+      return 1
+    fi
     sleep 1
+    elapsed=$((elapsed + 1))
   done
   return 1
 }
