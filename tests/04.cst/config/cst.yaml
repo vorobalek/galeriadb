@@ -16,6 +16,9 @@ fileExistenceTests:
   - name: "entrypoint discovery stage exists"
     path: "/usr/local/bin/entrypoint.d/10-discovery.sh"
     shouldExist: true
+  - name: "entrypoint precheck-primary stage exists"
+    path: "/usr/local/bin/entrypoint.d/15-precheck-primary.sh"
+    shouldExist: true
   - name: "entrypoint write-config stage exists"
     path: "/usr/local/bin/entrypoint.d/20-write-config.sh"
     shouldExist: true

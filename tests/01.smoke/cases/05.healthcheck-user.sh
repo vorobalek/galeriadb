@@ -34,6 +34,14 @@ if ! docker exec "$CONTAINER_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/de
   exit 1
 fi
 
+elapsed=0
+while [ "$elapsed" -lt 30 ]; do
+  if docker exec "$CONTAINER_NAME" mariadb -u "$HC_USER" -p"$HC_PASS" -e "SELECT 1" &>/dev/null; then
+    break
+  fi
+  sleep 1
+  elapsed=$((elapsed + 1))
+done
 if ! docker exec "$CONTAINER_NAME" mariadb -u "$HC_USER" -p"$HC_PASS" -e "SELECT 1" &>/dev/null; then
   log "Healthcheck user could not connect"
   docker logs "$CONTAINER_NAME" 2>&1 | tail -100

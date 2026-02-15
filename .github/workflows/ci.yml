@@ -57,25 +57,8 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build dev image
-        run: docker build -t galeriadb/dev:ci -f docker/Dockerfile.dev .
-
       - name: Run all tests
-        run: |
-          mkdir -p .cache/trivy
-          docker run --rm \
-            -v "${{ github.workspace }}:/workspace" \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "${{ github.workspace }}/.cache/trivy:/root/.cache/trivy" \
-            -w /workspace \
-            -e IMAGE="${{ env.IMAGE }}" \
-            -e ARTIFACTS_DIR="${{ env.ARTIFACTS_DIR }}" \
-            -e HOST_WORKSPACE="${{ github.workspace }}" \
-            galeriadb/dev:ci \
-            make ci
+        run: make ci-docker
 
       - name: Collect diagnostics on failure
         if: failure()
