@@ -52,6 +52,7 @@ The container exits immediately if any required variable is missing or empty.
 | `GALERIA_CLUSTER_NAME` | Galera cluster name (`wsrep_cluster_name`). | `galera_cluster` |
 | `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to resolve peers before continuing. | `5` |
 | `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. | `1` |
+| `GALERIA_JOIN_PRIMARY_TIMEOUT` | For non-candidates without an initial Synced peer: seconds to reach `Synced` before exit (for orchestrator restart). | `30` |
 | `GALERIA_NODE_ADDRESS` | Override this node's IP address if auto-detection is wrong. | auto-detected |
 
 Discovery behavior:

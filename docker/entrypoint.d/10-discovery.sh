@@ -75,9 +75,11 @@ CLUSTER_LIST=$(echo "$PEER_NAMES" | tr ',' '\n' | sed 's/$/:4567/' | tr '\n' ','
 JOIN_ADDRESS="gcomm://${CLUSTER_LIST}?pc.wait_prim=yes"
 
 if [ -n "$SYNCED_PEER_IP" ]; then
+  SYNCED_PEER_FOUND=1
   log "Found existing Synced peer at $SYNCED_PEER_IP -> joining"
   CLUSTER_ADDRESS="gcomm://${SYNCED_PEER_IP}:4567?pc.wait_prim=yes"
 else
+  SYNCED_PEER_FOUND=0
   if [ "$HOSTNAME" = "${GALERIA_BOOTSTRAP_CANDIDATE:-}" ]; then
     log "No existing cluster detected. I am bootstrap candidate -> bootstrapping"
     AM_I_BOOTSTRAP=1
@@ -90,3 +92,4 @@ fi
 
 export CLUSTER_ADDRESS
 export AM_I_BOOTSTRAP
+export SYNCED_PEER_FOUND

@@ -69,6 +69,7 @@ start_galera() {
     env_args+=(-e AWS_SECRET_ACCESS_KEY="$MINIO_SECRET")
     env_args+=(-e AWS_DEFAULT_REGION=us-east-1)
     [ -n "${GALERIA_BACKUP_SCHEDULE:-}" ] && env_args+=(-e "GALERIA_BACKUP_SCHEDULE=${GALERIA_BACKUP_SCHEDULE}")
+    [ -n "${GALERIA_CRONTAB:-}" ] && env_args+=(-e "GALERIA_CRONTAB=${GALERIA_CRONTAB}")
   else
     env_args+=(-e GALERIA_CLONE_BACKUP_S3_URI="s3://${S3_BUCKET}/${S3_PREFIX}")
     env_args+=(-e CLONE_AWS_ENDPOINT_URL="http://${MINIO_NAME}:9000")
