@@ -43,12 +43,12 @@ cst: build
 security: build
 	@echo "--- trivy ---"
 	@command -v trivy >/dev/null 2>&1 || (echo "trivy not found" && exit 1)
-	trivy image --exit-code 1 --severity CRITICAL $(IMAGE)
+	@docker save "$(IMAGE)" -o /tmp/security-image.tar
+	trivy image --input /tmp/security-image.tar --exit-code 1 --severity CRITICAL
 	@echo "--- dockle ---"
 	@command -v dockle >/dev/null 2>&1 || (echo "dockle not found" && exit 1)
-	@docker save "$(IMAGE)" -o /tmp/dockle-image.tar
-	@dockle --exit-code 1 -i CIS-DI-0001 --input /tmp/dockle-image.tar
-	@rm -f /tmp/dockle-image.tar
+	@dockle --exit-code 1 -i CIS-DI-0001 --input /tmp/security-image.tar
+	@rm -f /tmp/security-image.tar
 
 test-smoke: build
 	@echo "--- smoke test ---"
