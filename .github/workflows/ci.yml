@@ -60,6 +60,7 @@ jobs:
       - name: Set up Docker daemon (disable containerd image store)
         uses: docker/setup-docker-action@v4
         with:
+          set-host: true
           daemon-config: |
             {
               "features": {
@@ -69,6 +70,7 @@ jobs:
 
       - name: Show Docker info
         run: |
+          echo "DOCKER_HOST=${DOCKER_HOST:-}"
           docker version
           docker info
 
@@ -96,9 +98,15 @@ jobs:
           docker image inspect "${{ env.IMAGE }}" > "${{ env.ARTIFACTS_DIR }}/image-inspect.json" 2>&1 || true
 
           # Reproduce Trivy context in the same dev image used by make ci-docker.
+          DOCKER_SOCK="/var/run/docker.sock"
+          if [[ "${DOCKER_HOST:-}" == unix://* ]]; then
+            DOCKER_SOCK="${DOCKER_HOST#unix://}"
+          fi
+          echo "using_docker_socket=${DOCKER_SOCK}" > "${{ env.ARTIFACTS_DIR }}/docker-socket.txt"
+
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
-            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${DOCKER_SOCK}:/var/run/docker.sock" \
             -w /workspace \
             -e IMAGE="${{ env.IMAGE }}" \
             -e ARTIFACTS_DIR="/workspace/artifacts" \

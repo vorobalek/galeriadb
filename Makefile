@@ -78,11 +78,14 @@ build-dev:
 
 ci-docker: build-dev
 	@echo "--- CI (in container, host Docker socket) ---"
-	docker run --rm \
-		-v "$(CURDIR):/workspace" \
-		-v /var/run/docker.sock:/var/run/docker.sock \
-		-w /workspace \
-		-e IMAGE="$(IMAGE)" \
-		-e ARTIFACTS_DIR="$(ARTIFACTS_DIR)" \
-		-e HOST_WORKSPACE="$(CURDIR)" \
-		"$(DEV_IMAGE)" make ci
+	@sock="/var/run/docker.sock"; \
+		if [[ "$${DOCKER_HOST:-}" == unix://* ]]; then sock="$${DOCKER_HOST#unix://}"; fi; \
+		echo "Using Docker socket: $$sock"; \
+		docker run --rm \
+			-v "$(CURDIR):/workspace" \
+			-v "$$sock:/var/run/docker.sock" \
+			-w /workspace \
+			-e IMAGE="$(IMAGE)" \
+			-e ARTIFACTS_DIR="$(ARTIFACTS_DIR)" \
+			-e HOST_WORKSPACE="$(CURDIR)" \
+			"$(DEV_IMAGE)" make ci
