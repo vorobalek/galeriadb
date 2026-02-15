@@ -52,13 +52,16 @@ The container exits immediately if any required variable is missing or empty.
 | `GALERIA_CLUSTER_NAME` | Galera cluster name (`wsrep_cluster_name`). | `galera_cluster` |
 | `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to resolve peers before continuing. | `5` |
 | `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. | `1` |
+| `GALERIA_JOIN_PRIMARY_TIMEOUT` | For non-candidates without an initial Synced peer: seconds to pre-check for a reachable Synced peer before exit (for orchestrator restart). | `30` |
+| `GALERIA_MARIADB_LOGS` | MariaDB/Galera server logs to container stdout/stderr. Set to `on` to enable; any other value keeps only entrypoint/script logs in `docker logs`. | `off` |
 | `GALERIA_NODE_ADDRESS` | Override this node's IP address if auto-detection is wrong. | auto-detected |
 
 Discovery behavior:
 
 - The image resolves `GALERIA_PEERS` and looks for a Synced node.
 - If a Synced node is found, this node joins it.
-- If none is found within the discovery window, only the bootstrap candidate starts a new cluster; other nodes join and wait for primary.
+- If none is found within the discovery window, only the bootstrap candidate starts a new cluster.
+- Non-candidates run a pre-check for up to `GALERIA_JOIN_PRIMARY_TIMEOUT`; if no Synced peer appears, they exit so the orchestrator can restart later.
 - In Swarm or Kubernetes, peer DNS may be empty during the first task start. The discovery window avoids long waits while still allowing late joiners.
 
 ### Health check
@@ -161,6 +164,8 @@ Run inside the dev container (no local toolchain required):
 make ci-docker
 ```
 
+`make ci-docker` auto-detects a Unix socket from `DOCKER_HOST` when set; otherwise it uses `/var/run/docker.sock`.
+
 Targets:
 
 | Command | Description |
@@ -168,10 +173,9 @@ Targets:
 | `make ci` | lint, build, CST, security, smoke, deploy, backup-s3 |
 | `make ci-docker` | same as `make ci` inside dev container |
 | `make lint` | hadolint, shellcheck, shfmt |
-| `make lint-docker` | lint inside dev container |
 | `make build` | build image (`galeriadb/12.1:local`) |
 | `make cst` | Container Structure Tests |
-| `make security` | Trivy (CRITICAL) + Dockle |
+| `make security` | Trivy rootfs scan (CRITICAL) + Dockle image scan |
 | `make smoke` | required env validation, single-node startup, graceful shutdown, Docker HEALTHCHECK |
 | `make deploy` | 3-node Galera + HAProxy scenarios |
 | `make backup-s3` | S3 backup tests (MinIO) |

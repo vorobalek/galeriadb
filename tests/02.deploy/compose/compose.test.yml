@@ -2,6 +2,7 @@ services:
   galera1:
     image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
     hostname: galera1
+    restart: unless-stopped
     environment:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
@@ -23,6 +24,7 @@ services:
   galera2:
     image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
     hostname: galera2
+    restart: unless-stopped
     environment:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
@@ -44,6 +46,7 @@ services:
   galera3:
     image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
     hostname: galera3
+    restart: unless-stopped
     environment:
       GALERIA_ROOT_PASSWORD: secret
       GALERIA_PEERS: galera1,galera2,galera3
@@ -64,6 +67,7 @@ services:
 
   haproxy:
     image: haproxy:2.9-alpine
+    restart: unless-stopped
     ports:
       - "3306:3306"
     volumes:
