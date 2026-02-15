@@ -43,12 +43,15 @@ cst: build
 security: build
 	@echo "--- trivy ---"
 	@command -v trivy >/dev/null 2>&1 || (echo "trivy not found" && exit 1)
-	@docker save "$(IMAGE)" -o /tmp/security-image.tar
-	trivy image --input /tmp/security-image.tar --exit-code 1 --severity CRITICAL
+	@set -euo pipefail; \
+		tmpdir="$$(mktemp -d)"; \
+		cid="$$(docker create "$(IMAGE)")"; \
+		trap 'docker rm -f "$$cid" >/dev/null 2>&1 || true; rm -rf "$$tmpdir"' EXIT; \
+		docker export "$$cid" | tar -C "$$tmpdir" -xf -; \
+		trivy rootfs --scanners vuln --exit-code 1 --severity CRITICAL "$$tmpdir"
 	@echo "--- dockle ---"
 	@command -v dockle >/dev/null 2>&1 || (echo "dockle not found" && exit 1)
-	@dockle --exit-code 1 -i CIS-DI-0001 --input /tmp/security-image.tar
-	@rm -f /tmp/security-image.tar
+	@dockle --exit-code 1 -i CIS-DI-0001 "$(IMAGE)"
 
 test-smoke: build
 	@echo "--- smoke test ---"
