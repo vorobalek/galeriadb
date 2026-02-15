@@ -57,6 +57,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Set up Docker daemon (disable containerd image store)
+        uses: docker/setup-docker-action@v4
+        with:
+          daemon-config: |
+            {
+              "features": {
+                "containerd-snapshotter": false
+              }
+            }
+
+      - name: Show Docker info
+        run: |
+          docker version
+          docker info
+
       - name: Run all tests
         run: make ci-docker
 
