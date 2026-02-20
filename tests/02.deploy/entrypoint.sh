@@ -16,7 +16,6 @@ require_image "$IMAGE"
 
 COMPOSE_FILE="${SCRIPT_DIR}/compose/compose.test.yml"
 PROJECT_NAME="${COMPOSE_PROJECT_NAME:-galeriadb-test}"
-export HOST_WORKSPACE="${HOST_WORKSPACE:-$PWD}"
 export PASS="secret"
 export COMPOSE_IMAGE="$IMAGE"
 

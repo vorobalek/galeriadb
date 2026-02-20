@@ -164,7 +164,8 @@ Run inside the dev container (no local toolchain required):
 make ci-docker
 ```
 
-`make ci-docker` auto-detects a Unix socket from `DOCKER_HOST` when set; otherwise it uses `/var/run/docker.sock`.
+`make ci-docker` runs `make ci` from sources baked into the dev image at `/workspace` and uses Docker socket passthrough (`/var/run/docker.sock` or path from `DOCKER_HOST=unix://...`).  
+Diagnostics from `/workspace/artifacts` are copied back to local `./artifacts/` after the run.
 
 Targets:
 
