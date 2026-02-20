@@ -78,5 +78,6 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins \
     && chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 WORKDIR /workspace
+COPY . /workspace
 
 CMD ["make", "ci"]

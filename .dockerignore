@@ -1,19 +1,10 @@
-# Used when building the dev image (Dockerfile.dev): context = . (repo root).
+# Used when building the dev image (Dockerfile.dev): context = repo root.
 # Main image uses context docker/ and docker/.dockerignore.
 
-# Git and CI
+# Local VCS metadata
 .git
-.github
-.gitignore
 
-# Docs and examples (not needed in image build context)
-README.md
-examples/
-
-# Tests: not copied into dev image; repo is mounted at run time for make ci / make lint
-tests/
-
-# Local / artifacts
+# Local / generated files
 artifacts/
 .env
 *.log

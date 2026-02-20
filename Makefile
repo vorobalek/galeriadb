@@ -2,6 +2,7 @@ SHELL := /bin/bash
 # Prefer :local for tests so we never accidentally use a pulled image.
 IMAGE ?= galeriadb/12.1:local
 DEV_IMAGE ?= galeriadb/dev:local
+DEPLOY_HAPROXY_IMAGE ?= galeriadb/test-haproxy:local
 DOCKERFILE ?= docker/Dockerfile
 DOCKERFILE_DEV ?= docker/Dockerfile.dev
 CONTEXT ?= docker/
@@ -51,15 +52,23 @@ security: build
 		trivy rootfs --scanners vuln --exit-code 1 --severity CRITICAL "$$tmpdir"
 	@echo "--- dockle ---"
 	@command -v dockle >/dev/null 2>&1 || (echo "dockle not found" && exit 1)
-	@dockle --exit-code 1 -i CIS-DI-0001 "$(IMAGE)"
+	@set -euo pipefail; \
+		tmp_tar="$$(mktemp -t dockle-image-XXXXXX.tar)"; \
+		trap 'rm -f "$$tmp_tar"' EXIT; \
+		docker save "$(IMAGE)" -o "$$tmp_tar"; \
+		dockle --exit-code 1 -i CIS-DI-0001 --input "$$tmp_tar"
 
 test-smoke: build
 	@echo "--- smoke test ---"
 	./tests/01.smoke/entrypoint.sh "$(IMAGE)"
 
-test-deploy: build
+build-deploy-haproxy:
+	@echo "--- build deploy HAProxy test image $(DEPLOY_HAPROXY_IMAGE) ---"
+	docker build -t "$(DEPLOY_HAPROXY_IMAGE)" -f tests/02.deploy/compose/Dockerfile tests/02.deploy/compose
+
+test-deploy: build build-deploy-haproxy
 	@echo "--- deploy test ---"
-	COMPOSE_IMAGE="$(IMAGE)" ./tests/02.deploy/entrypoint.sh "$(IMAGE)"
+	COMPOSE_IMAGE="$(IMAGE)" COMPOSE_HAPROXY_IMAGE="$(DEPLOY_HAPROXY_IMAGE)" ./tests/02.deploy/entrypoint.sh "$(IMAGE)"
 
 test-backup-s3: build
 	@echo "--- S3 backup test (MinIO) ---"
@@ -77,15 +86,16 @@ build-dev:
 	docker build -t "$(DEV_IMAGE)" -f "$(DOCKERFILE_DEV)" .
 
 ci-docker: build-dev
-	@echo "--- CI (in container, host Docker socket) ---"
-	@sock="/var/run/docker.sock"; \
+	@echo "--- CI (in container, source from image context) ---"
+	@set -euo pipefail; \
+		container="galeriadb-ci-$$(date +%s)-$$RANDOM"; \
+		sock="/var/run/docker.sock"; \
 		if [[ "$${DOCKER_HOST:-}" == unix://* ]]; then sock="$${DOCKER_HOST#unix://}"; fi; \
 		echo "Using Docker socket: $$sock"; \
-		docker run --rm \
-			-v "$(CURDIR):/workspace" \
-			-v "$$sock:/var/run/docker.sock" \
-			-w /workspace \
-			-e IMAGE="$(IMAGE)" \
-			-e ARTIFACTS_DIR="$(ARTIFACTS_DIR)" \
-			-e HOST_WORKSPACE="$(CURDIR)" \
-			"$(DEV_IMAGE)" make ci
+		run_args=(--name "$$container" -v "$$sock:/var/run/docker.sock" -e IMAGE="$(IMAGE)" -e ARTIFACTS_DIR="/workspace/artifacts"); \
+		status=0; \
+		docker run "$${run_args[@]}" "$(DEV_IMAGE)" make ci || status=$$?; \
+		mkdir -p "$(ARTIFACTS_DIR)"; \
+		docker cp "$$container:/workspace/artifacts/." "$(ARTIFACTS_DIR)/" >/dev/null 2>&1 || true; \
+		docker rm -f "$$container" >/dev/null 2>&1 || true; \
+		exit $$status

@@ -66,12 +66,10 @@ services:
       start_period: 120s
 
   haproxy:
-    image: haproxy:2.9-alpine
+    image: ${COMPOSE_HAPROXY_IMAGE:-galeriadb/test-haproxy:local}
     restart: unless-stopped
     ports:
       - "3306:3306"
-    volumes:
-      - ${HOST_WORKSPACE}/tests/02.deploy/compose/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     networks:
       - galera_net
 
