@@ -16,7 +16,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch' || !contains(github.event.head_commit.message || '', '[skip-ci]')
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4

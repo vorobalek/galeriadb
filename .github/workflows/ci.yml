@@ -12,7 +12,7 @@ jobs:
     outputs:
       skip: ${{ steps.check.outputs.skip }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 1
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -55,7 +55,7 @@ jobs:
       IMAGE: galeriadb/12.1:sha-${{ github.sha }}
       ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Docker daemon (disable containerd image store)
         uses: docker/setup-docker-action@v5
@@ -181,7 +181,7 @@ jobs:
     env:
       IMAGE: galeriadb/12.1:sha-${{ github.sha }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Run swarm sanity
         run: make swarm
