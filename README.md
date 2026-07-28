@@ -53,6 +53,8 @@ The container exits immediately if any required variable is missing or empty.
 | `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to resolve peers before continuing. | `5` |
 | `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. | `1` |
 | `GALERIA_JOIN_PRIMARY_TIMEOUT` | For non-candidates without an initial Synced peer: seconds to pre-check for a reachable Synced peer before exit (for orchestrator restart). | `30` |
+| `GALERIA_READY_TIMEOUT` | Seconds to wait for MariaDB to accept connections before the container gives up. Time spent in a state transfer (SST) does not count against it. | `60` |
+| `GALERIA_SST_TIMEOUT` | Maximum seconds to wait while a state transfer (SST) is running. `0` waits without a limit. | `3600` |
 | `GALERIA_MARIADB_LOGS` | MariaDB/Galera server logs to container stdout/stderr. Set to `on` to enable; any other value keeps only entrypoint/script logs in `docker logs`. | `off` |
 | `GALERIA_NODE_ADDRESS` | Override this node's IP address if auto-detection is wrong. | auto-detected |
 
@@ -63,6 +65,11 @@ Discovery behavior:
 - If none is found within the discovery window, only the bootstrap candidate starts a new cluster.
 - Non-candidates run a pre-check for up to `GALERIA_JOIN_PRIMARY_TIMEOUT`; if no Synced peer appears, they exit so the orchestrator can restart later.
 - In Swarm or Kubernetes, peer DNS may be empty during the first task start. The discovery window avoids long waits while still allowing late joiners.
+
+State transfer (SST):
+
+- A joining node refuses client connections for as long as its state transfer takes, so the `GALERIA_READY_TIMEOUT` countdown is paused while a transfer is running and restarts once it finishes. A joiner is never killed mid-SST because its dataset is large or the link is slow (which would also abort the transfer on the donor).
+- The transfer itself is bounded by `GALERIA_SST_TIMEOUT`. Raise it (or set `0`) for datasets that need more than an hour to transfer.
 
 ### Health check
 
