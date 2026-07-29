@@ -62,7 +62,9 @@ EXPOSE 3306 4567 4568 4444 9200
 
 VOLUME /var/lib/mysql
 
+# Liveness, not readiness: a joiner receiving a state transfer is not ready to
+# serve, and restarting it there aborts the transfer. Load balancers use GET /.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -sf http://127.0.0.1:9200/ || exit 1
+  CMD curl -sf http://127.0.0.1:9200/liveness || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -61,12 +61,10 @@ services:
         max-file: "3"
     env_file:
       - stack.env
-    healthcheck:
-      test: ["CMD-SHELL", "mariadb -u root -p$$GALERIA_ROOT_PASSWORD -e \"SHOW STATUS LIKE 'wsrep_local_state_comment';\" || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+    # No healthcheck override: the image ships a state-transfer-aware check
+    # (GET /liveness on port 9200). A plain server ping reports unhealthy while
+    # a joiner receives its state transfer, and Swarm then restarts the task
+    # mid-transfer. HAProxy keeps using GET / for readiness.
     volumes:
       - /data/mariadb/{{.Node.Hostname}}:/var/lib/mysql:rw
     networks:

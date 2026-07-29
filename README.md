@@ -73,7 +73,18 @@ State transfer (SST):
 
 ### Health check
 
-The image starts an HTTP listener on port 9200 and returns 200 only when the node is Synced and `wsrep_ready=ON`.
+The image starts an HTTP listener on port 9200 with two endpoints:
+
+| Endpoint | Meaning | Use for |
+| --- | --- | --- |
+| `GET /` | Readiness: 200 only when the node is Synced and `wsrep_ready=ON`. | Load balancers (HAProxy `http-check send meth GET uri /`). |
+| `GET /liveness` | Liveness: 200 while the node is Synced **or** taking part in a state transfer (receiving it as a joiner, serving it as a donor, applying the backlog afterwards). | Container health checks, orchestrator probes. |
+
+The image `HEALTHCHECK` uses `/liveness`, because a node that is merely "not ready" must not be restarted: a joiner restarted mid-SST loses the transfer and also breaks it on the donor. Do not override the health check with a plain server ping (`mariadb -e "SHOW STATUS ..."`) — a joiner has no server to answer it while its state transfer runs, so Swarm would restart the task in the middle of the transfer.
+
+In Kubernetes, map the endpoints directly: `/liveness` for `livenessProbe`, `/` for `readinessProbe`.
+
+The check keeps the default start period of 60s, which covers cluster connect and data directory initialization before a transfer begins. A node that restarts with a very large gcache backlog to replay (IST, with no transfer helper running and the server not yet accepting connections) can need longer; raise the health check `start_period` for that deployment if so.
 
 Optional:
 

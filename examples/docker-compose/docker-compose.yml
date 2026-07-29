@@ -20,12 +20,8 @@ services:
       galera_net:
         aliases:
           - galera1
-    healthcheck:
-      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 60s
+    # No healthcheck override: the image ships a state-transfer-aware check
+    # (GET /liveness on port 9200), while HAProxy uses GET / for readiness.
 
   galera2:
     image: galeriadb/12.1:latest
@@ -41,12 +37,6 @@ services:
       galera_net:
         aliases:
           - galera2
-    healthcheck:
-      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 120s
 
   galera3:
     image: galeriadb/12.1:latest
@@ -62,12 +52,6 @@ services:
       galera_net:
         aliases:
           - galera3
-    healthcheck:
-      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 120s
 
   haproxy:
     image: haproxy:2.9-alpine
