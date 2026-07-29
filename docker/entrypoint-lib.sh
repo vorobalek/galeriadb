@@ -33,14 +33,71 @@ clone_enabled() {
   [ -n "${GALERIA_CLONE_BACKUP_S3_URI:-}" ] || [ -n "${GALERIA_CLONE_BACKUP_S3_BUCKET:-}" ]
 }
 
+# True while a state snapshot transfer runs on this node. MariaDB keeps the
+# wsrep_sst_<method> helper alive for the whole transfer, so a matching process
+# means the server is busy receiving data, not stuck.
+sst_in_progress() {
+  local proc cmdline
+  for proc in /proc/[0-9]*/cmdline; do
+    cmdline="$(tr '\0' ' ' 2>/dev/null <"$proc")" || continue
+    case "$cmdline" in
+      *wsrep_sst_*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# wait_for_mysql [TIMEOUT] [MYSQLD_PID]
+# A joiner refuses connections for as long as SST takes, so time spent in a
+# state transfer does not count against TIMEOUT (and the countdown restarts
+# once the transfer ends). The transfer itself is bounded by
+# GALERIA_SST_TIMEOUT (0 = no bound).
 wait_for_mysql() {
-  for _ in $(seq 1 60); do
+  local timeout="${1:-60}"
+  local pid="${2:-}"
+  local sst_timeout="${GALERIA_SST_TIMEOUT:-3600}"
+  local elapsed=0 sst_elapsed=0 in_sst=0
+  while true; do
     if mariadb -u root -e "SELECT 1" &>/dev/null || mariadb -u root -p"$MYSQL_PWD" -h 127.0.0.1 -e "SELECT 1" &>/dev/null; then
       return 0
     fi
-    sleep 1
+    if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
+      return 1
+    fi
+    if sst_in_progress; then
+      if [ "$in_sst" -eq 0 ]; then
+        in_sst=1
+        if [ "$sst_timeout" -gt 0 ]; then
+          log "State transfer (SST) in progress; readiness timeout paused (SST limit ${sst_timeout}s)"
+        else
+          log "State transfer (SST) in progress; readiness timeout paused (no SST limit)"
+        fi
+      fi
+      sst_elapsed=$((sst_elapsed + 1))
+      if [ "$sst_timeout" -gt 0 ] && [ "$sst_elapsed" -ge "$sst_timeout" ]; then
+        log "State transfer did not finish within ${sst_timeout}s (GALERIA_SST_TIMEOUT)"
+        return 1
+      fi
+    else
+      if [ "$in_sst" -eq 1 ]; then
+        in_sst=0
+        elapsed=0
+        log "State transfer finished after ${sst_elapsed}s; waiting up to ${timeout}s for MariaDB to accept connections"
+      fi
+      if [ "$elapsed" -ge "$timeout" ]; then
+        return 1
+      fi
+      elapsed=$((elapsed + 1))
+    fi
+    # Poll for a starting transfer in slices: a small dataset transfers in a
+    # couple of seconds, and a once-per-second check can miss that window.
+    for _ in 1 2 3 4 5; do
+      sleep 0.2
+      if [ "$in_sst" -eq 0 ] && sst_in_progress; then
+        break
+      fi
+    done
   done
-  return 1
 }
 
 run_stage() {
