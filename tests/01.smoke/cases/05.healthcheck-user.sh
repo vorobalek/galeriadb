@@ -34,6 +34,9 @@ if ! docker exec "$CONTAINER_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/de
   exit 1
 fi
 
+# root answers over the socket before the entrypoint has created the health
+# check user, so poll instead of checking once.
+log "Waiting for the healthcheck user (up to 30s)..."
 elapsed=0
 while [ "$elapsed" -lt 30 ]; do
   if docker exec "$CONTAINER_NAME" mariadb -u "$HC_USER" -p"$HC_PASS" -e "SELECT 1" &>/dev/null; then
