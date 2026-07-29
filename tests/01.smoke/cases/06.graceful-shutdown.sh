@@ -6,7 +6,7 @@ log "Case 06.graceful-shutdown: SIGTERM leads to clean shutdown, data persists"
 VOL_NAME="galeriadb-smoke-graceful-$$"
 docker volume create "$VOL_NAME" >/dev/null
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 docker run -d \
   --name "$CONTAINER_NAME" \
@@ -30,7 +30,7 @@ done
 if ! docker exec "$CONTAINER_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/dev/null; then
   log "MySQL did not become ready within 60s"
   docker logs "$CONTAINER_NAME" 2>&1 | tail -100
-  docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+  docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
   docker volume rm "$VOL_NAME" 2>/dev/null || true
   exit 1
 fi
@@ -70,7 +70,7 @@ done
 if ! docker exec "$CONTAINER_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/dev/null; then
   log "MySQL did not become ready after restart"
   docker logs "$CONTAINER_NAME" 2>&1 | tail -100
-  docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+  docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
   docker volume rm "$VOL_NAME" 2>/dev/null || true
   exit 1
 fi
@@ -79,12 +79,12 @@ val="$(docker exec "$CONTAINER_NAME" mariadb -u root -p"$PASS" -Nse "USE testdb;
 if [ "$val" != "before-stop" ]; then
   log "Data mismatch after restart: expected 'before-stop', got '$val'"
   docker logs "$CONTAINER_NAME" 2>&1 | tail -50
-  docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+  docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
   docker volume rm "$VOL_NAME" 2>/dev/null || true
   exit 1
 fi
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 docker volume rm "$VOL_NAME" 2>/dev/null || true
 
 log "Case 06.graceful-shutdown passed."

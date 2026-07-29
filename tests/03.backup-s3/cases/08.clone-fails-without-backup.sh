@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 08.clone-fails-without-backup: clone must fail on empty S3 path"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 
 start_minio
 start_galera_clone

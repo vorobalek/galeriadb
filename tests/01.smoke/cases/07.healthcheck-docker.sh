@@ -3,7 +3,7 @@ set -euo pipefail
 
 log "Case 07.healthcheck-docker: Docker HEALTHCHECK reports healthy when node is ready"
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 docker run -d \
   --name "$CONTAINER_NAME" \

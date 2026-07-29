@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 05.clone-on-empty: restore from S3 when /var/lib/mysql is empty"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 
 start_minio
 start_galera
@@ -28,7 +28,7 @@ docker exec -e MYSQL_PWD="$PASS" "$GALERA_NAME" /usr/local/bin/galera-backup.sh 
 }
 
 log "Restarting with clone enabled..."
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
 start_galera_clone
 wait_mysql_ready || {
   docker logs "$GALERA_NAME" 2>&1 | tail -80
