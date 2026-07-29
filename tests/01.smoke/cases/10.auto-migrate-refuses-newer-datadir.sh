@@ -7,12 +7,12 @@ VOL_NAME="galeriadb-smoke-upgrade-guard-$$"
 docker volume create "$VOL_NAME" >/dev/null
 
 cleanup_case() {
-  docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+  docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
   docker volume rm "$VOL_NAME" 2>/dev/null || true
 }
 trap cleanup_case EXIT
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 log "Bootstrapping initial datadir..."
 docker run -d \
@@ -39,7 +39,7 @@ if ! docker exec "$CONTAINER_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/de
   exit 1
 fi
 
-docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+docker rm -fv "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
 log "Injecting newer upgrade marker into datadir..."
 docker run --rm \

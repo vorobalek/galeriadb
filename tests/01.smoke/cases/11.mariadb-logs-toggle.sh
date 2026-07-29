@@ -6,7 +6,7 @@ log "Case 11.mariadb-logs-toggle: MariaDB/Galera logs are off by default and ena
 OFF_NAME="${CONTAINER_NAME}-off"
 ON_NAME="${CONTAINER_NAME}-on"
 
-docker rm -f "$OFF_NAME" "$ON_NAME" 2>/dev/null || true
+docker rm -fv "$OFF_NAME" "$ON_NAME" 2>/dev/null || true
 
 log "Starting container with default log mode (expected: no WSREP logs in docker logs)..."
 docker run -d \
@@ -39,7 +39,7 @@ if echo "$logs_off" | grep -q "WSREP:"; then
   exit 1
 fi
 
-docker rm -f "$OFF_NAME" >/dev/null 2>&1 || true
+docker rm -fv "$OFF_NAME" >/dev/null 2>&1 || true
 
 log "Starting container with GALERIA_MARIADB_LOGS=on (expected: WSREP logs visible)..."
 docker run -d \
@@ -73,6 +73,6 @@ if ! echo "$logs_on" | grep -q "WSREP:"; then
   exit 1
 fi
 
-docker rm -f "$ON_NAME" >/dev/null 2>&1 || true
+docker rm -fv "$ON_NAME" >/dev/null 2>&1 || true
 
 log "Case 11.mariadb-logs-toggle passed."

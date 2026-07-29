@@ -6,7 +6,7 @@ log "Case 05.healthcheck-user: custom healthcheck user/password"
 HC_USER="healthcheck"
 HC_PASS="healthcheck-pass"
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 docker run -d \
   --name "$CONTAINER_NAME" \

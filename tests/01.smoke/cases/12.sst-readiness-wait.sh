@@ -3,7 +3,7 @@ set -euo pipefail
 
 log "Case 12.sst-readiness-wait: readiness timeout is paused while a state transfer runs"
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 # Part 1: wait_for_mysql semantics, exercised directly in the image.
 # A fake wsrep_sst_* process stands in for a real joiner transfer, so the case
@@ -131,6 +131,6 @@ if ! echo "$logs" | grep -q "MariaDB did not become ready in time (GALERIA_READY
   exit 1
 fi
 
-docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+docker rm -fv "$CONTAINER_NAME" >/dev/null 2>&1 || true
 
 log "Case 12.sst-readiness-wait passed."

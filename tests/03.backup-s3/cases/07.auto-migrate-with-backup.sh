@@ -83,7 +83,7 @@ log "Creating test data..."
 docker exec "$GALERA_NAME" mariadb -u root -p"$PASS" -e "CREATE DATABASE IF NOT EXISTS testdb; USE testdb; DROP TABLE IF EXISTS ci_upgrade; CREATE TABLE ci_upgrade (id INT PRIMARY KEY, v VARCHAR(32)); INSERT INTO ci_upgrade VALUES (1, 'before-upgrade');"
 
 log "Stopping 11.8 node..."
-docker rm -f "$GALERA_NAME" >/dev/null 2>&1 || true
+docker rm -fv "$GALERA_NAME" >/dev/null 2>&1 || true
 
 log "Starting 12.1 node..."
 start_new_node

@@ -20,7 +20,7 @@ export CONTAINER_NAME
 
 cleanup() {
   log "Cleaning up container $CONTAINER_NAME"
-  docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+  docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 }
 trap cleanup EXIT
 

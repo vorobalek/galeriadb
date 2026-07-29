@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 11.cron-with-custom-crontab: install backup cron together with GALERIA_CRONTAB"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 
 start_minio
 GALERIA_BACKUP_SCHEDULE='* * * * *' GALERIA_CRONTAB='*/5 * * * * echo custom-task >> /tmp/custom-cron.log' start_galera

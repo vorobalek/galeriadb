@@ -3,7 +3,7 @@ set -euo pipefail
 
 log "Case 09.non-candidate-exits-without-primary: non-candidate must fail fast when no primary appears"
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 start_ts="$(date +%s)"
 docker run -d \

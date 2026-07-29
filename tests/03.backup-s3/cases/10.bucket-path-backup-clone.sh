@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 10.bucket-path-backup-clone: backup+clone scripts with bucket/path variables"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 
 start_minio
 
@@ -80,7 +80,7 @@ docker run --rm \
   -c "rm -rf /var/lib/mysql/* && /usr/local/bin/galera-clone.sh"
 
 log "Starting node from restored volume..."
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
 docker run -d \
   --name "$GALERA_NAME" \
   --hostname galera1 \
