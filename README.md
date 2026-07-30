@@ -53,6 +53,8 @@ The container exits immediately if any required variable is missing or empty.
 | `GALERIA_DISCOVERY_TIMEOUT` | Total seconds to resolve peers before continuing. | `5` |
 | `GALERIA_DISCOVERY_INTERVAL` | Seconds between resolution attempts. | `1` |
 | `GALERIA_JOIN_PRIMARY_TIMEOUT` | For non-candidates without an initial Synced peer: seconds to pre-check for a reachable Synced peer before exit (for orchestrator restart). | `30` |
+| `GALERIA_READY_TIMEOUT` | Seconds to wait for MariaDB to accept connections before the container gives up. Time spent in a state transfer (SST) does not count against it. | `60` |
+| `GALERIA_SST_TIMEOUT` | Maximum seconds to wait while a state transfer (SST) is running. `0` waits without a limit. | `3600` |
 | `GALERIA_MARIADB_LOGS` | MariaDB/Galera server logs to container stdout/stderr. Set to `on` to enable; any other value keeps only entrypoint/script logs in `docker logs`. | `off` |
 | `GALERIA_NODE_ADDRESS` | Override this node's IP address if auto-detection is wrong. | auto-detected |
 
@@ -64,9 +66,25 @@ Discovery behavior:
 - Non-candidates run a pre-check for up to `GALERIA_JOIN_PRIMARY_TIMEOUT`; if no Synced peer appears, they exit so the orchestrator can restart later.
 - In Swarm or Kubernetes, peer DNS may be empty during the first task start. The discovery window avoids long waits while still allowing late joiners.
 
+State transfer (SST):
+
+- A joining node refuses client connections for as long as its state transfer takes, so the `GALERIA_READY_TIMEOUT` countdown is paused while a transfer is running and restarts once it finishes. A joiner is never killed mid-SST because its dataset is large or the link is slow (which would also abort the transfer on the donor).
+- The transfer itself is bounded by `GALERIA_SST_TIMEOUT`. Raise it (or set `0`) for datasets that need more than an hour to transfer.
+
 ### Health check
 
-The image starts an HTTP listener on port 9200 and returns 200 only when the node is Synced and `wsrep_ready=ON`.
+The image starts an HTTP listener on port 9200 with two endpoints:
+
+| Endpoint | Meaning | Use for |
+| --- | --- | --- |
+| `GET /` | Readiness: 200 only when the node is Synced and `wsrep_ready=ON`. | Load balancers (HAProxy `http-check send meth GET uri /`). |
+| `GET /liveness` | Liveness: 200 while the node is Synced **or** taking part in a state transfer (receiving it as a joiner, serving it as a donor, applying the backlog afterwards). | Container health checks, orchestrator probes. |
+
+The image `HEALTHCHECK` uses `/liveness`, because a node that is merely "not ready" must not be restarted: a joiner restarted mid-SST loses the transfer and also breaks it on the donor. Do not override the health check with a plain server ping (`mariadb -e "SHOW STATUS ..."`) — a joiner has no server to answer it while its state transfer runs, so Swarm would restart the task in the middle of the transfer.
+
+In Kubernetes, map the endpoints directly: `/liveness` for `livenessProbe`, `/` for `readinessProbe`.
+
+The check keeps the default start period of 60s, which covers cluster connect and data directory initialization before a transfer begins. A node that restarts with a very large gcache backlog to replay (IST, with no transfer helper running and the server not yet accepting connections) can need longer; raise the health check `start_period` for that deployment if so.
 
 Optional:
 

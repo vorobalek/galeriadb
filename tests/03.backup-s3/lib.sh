@@ -17,13 +17,13 @@ register_volume() { EXTRA_VOLUMES+=("$1"); }
 cleanup_backup_s3() {
   log "Cleaning up containers and network"
   for c in "${EXTRA_CONTAINERS[@]}"; do
-    docker rm -f "$c" 2>/dev/null || true
+    docker rm -fv "$c" 2>/dev/null || true
   done
   for v in "${EXTRA_VOLUMES[@]}"; do
     docker volume rm "$v" 2>/dev/null || true
   done
-  docker rm -f "$GALERA_NAME" 2>/dev/null || true
-  docker rm -f "$MINIO_NAME" 2>/dev/null || true
+  docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+  docker rm -fv "$MINIO_NAME" 2>/dev/null || true
   docker network rm "$NET_NAME" 2>/dev/null || true
 }
 

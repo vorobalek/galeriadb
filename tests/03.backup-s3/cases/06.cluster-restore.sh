@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 06.cluster-restore: cluster backup -> wipe -> restore -> verify"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 
 start_minio
 
@@ -132,7 +132,7 @@ fi
 CLONE_FROM="galera1/${latest}"
 
 log "Stopping cluster and wiping volumes..."
-docker rm -f "$G1" "$G2" "$G3" 2>/dev/null || true
+docker rm -fv "$G1" "$G2" "$G3" 2>/dev/null || true
 docker volume rm "$VOL1" "$VOL2" "$VOL3" 2>/dev/null || true
 docker volume create "$VOL1" >/dev/null
 docker volume create "$VOL2" >/dev/null

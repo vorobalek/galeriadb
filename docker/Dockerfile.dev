@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ARG HADOLINT_VERSION=2.14.0
 ARG SHFMT_VERSION=3.12.0
-ARG TRIVY_VERSION=0.69.1
+ARG TRIVY_VERSION=0.72.0
 ARG DOCKLE_VERSION=0.4.15
 ARG COMPOSE_VERSION=2.40.3
 ARG BUILDX_VERSION=0.31.1
@@ -42,8 +42,16 @@ RUN case "$TARGETARCH" in \
         "https://github.com/GoogleContainerTools/container-structure-test/releases/latest/download/container-structure-test-linux-${CST_ARCH}" \
     && chmod +x /usr/local/bin/container-structure-test
 
-RUN curl -sSfL "https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh" \
-    | sh -s -- -b /usr/local/bin "v${TRIVY_VERSION}"
+# Fetch the release archive directly, like every other tool here. The upstream
+# install script is pulled from the project's main branch, so it changes without
+# notice, and it fails outright once the pinned release is pruned from GitHub.
+RUN case "$TARGETARCH" in \
+        amd64) TRIVY_ARCH=64bit ;; arm64) TRIVY_ARCH=ARM64 ;; *) TRIVY_ARCH=64bit ;; \
+    esac \
+    && wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-${TRIVY_ARCH}.tar.gz" -O /tmp/trivy.tar.gz \
+    && tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy \
+    && chmod +x /usr/local/bin/trivy \
+    && rm -f /tmp/trivy.tar.gz
 
 RUN case "$TARGETARCH" in \
         amd64) DOCKLE_ARCH=64bit ;; arm64) DOCKLE_ARCH=ARM64 ;; *) DOCKLE_ARCH=64bit ;; \

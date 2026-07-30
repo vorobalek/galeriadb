@@ -3,7 +3,7 @@ set -euo pipefail
 
 log "Case 08.healthcheck-misconfigured-user: health endpoint must be 503 with invalid HC credentials"
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 docker run -d \
   --name "$CONTAINER_NAME" \

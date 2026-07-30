@@ -14,12 +14,6 @@ services:
       galera_net:
         aliases:
           - galera1
-    healthcheck:
-      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 90s
 
   galera2:
     image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
@@ -36,12 +30,6 @@ services:
       galera_net:
         aliases:
           - galera2
-    healthcheck:
-      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 120s
 
   galera3:
     image: ${COMPOSE_IMAGE:-galeriadb/12.1:local}
@@ -58,12 +46,6 @@ services:
       galera_net:
         aliases:
           - galera3
-    healthcheck:
-      test: ["CMD", "mariadb", "-u", "root", "-psecret", "-e", "SHOW STATUS LIKE 'wsrep_local_state_comment';"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 120s
 
   haproxy:
     image: ${COMPOSE_HAPROXY_IMAGE:-galeriadb/test-haproxy:local}

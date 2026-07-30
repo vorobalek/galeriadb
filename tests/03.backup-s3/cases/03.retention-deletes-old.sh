@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 03.retention-deletes-old: retention deletes by S3 LastModified"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 start_minio
 start_galera
 wait_mysql_ready || {

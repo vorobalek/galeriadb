@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 09.auto-migrate-fails-when-backup-fails: backup failure must block upgrade"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 
 start_minio
 
@@ -61,7 +61,7 @@ log "Creating test data in 11.8 datadir..."
 docker exec "$GALERA_NAME" mariadb -u root -p"$PASS" -e "CREATE DATABASE IF NOT EXISTS testdb; USE testdb; DROP TABLE IF EXISTS ci_upgrade_fail; CREATE TABLE ci_upgrade_fail (id INT PRIMARY KEY, v VARCHAR(32)); INSERT INTO ci_upgrade_fail VALUES (1, 'before-failed-upgrade');"
 
 log "Stopping 11.8 node..."
-docker rm -f "$GALERA_NAME" >/dev/null 2>&1 || true
+docker rm -fv "$GALERA_NAME" >/dev/null 2>&1 || true
 
 log "Starting 12.1 node with intentionally broken S3 endpoint..."
 start_new_node_with_broken_backup

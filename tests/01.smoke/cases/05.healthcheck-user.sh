@@ -6,7 +6,7 @@ log "Case 05.healthcheck-user: custom healthcheck user/password"
 HC_USER="healthcheck"
 HC_PASS="healthcheck-pass"
 
-docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+docker rm -fv "$CONTAINER_NAME" 2>/dev/null || true
 
 docker run -d \
   --name "$CONTAINER_NAME" \
@@ -34,6 +34,9 @@ if ! docker exec "$CONTAINER_NAME" mariadb -u root -p"$PASS" -e "SELECT 1" &>/de
   exit 1
 fi
 
+# root answers over the socket before the entrypoint has created the health
+# check user, so poll instead of checking once.
+log "Waiting for the healthcheck user (up to 30s)..."
 elapsed=0
 while [ "$elapsed" -lt 30 ]; do
   if docker exec "$CONTAINER_NAME" mariadb -u "$HC_USER" -p"$HC_PASS" -e "SELECT 1" &>/dev/null; then

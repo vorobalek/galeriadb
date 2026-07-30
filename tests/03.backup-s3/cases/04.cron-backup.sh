@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 log "Case 04.cron-backup: wait for cron (* * * * *) to run backup and verify S3"
-docker rm -f "$GALERA_NAME" 2>/dev/null || true
-docker rm -f "$MINIO_NAME" 2>/dev/null || true
+docker rm -fv "$GALERA_NAME" 2>/dev/null || true
+docker rm -fv "$MINIO_NAME" 2>/dev/null || true
 start_minio
 GALERIA_BACKUP_SCHEDULE='* * * * *' start_galera
 wait_mysql_ready || {
