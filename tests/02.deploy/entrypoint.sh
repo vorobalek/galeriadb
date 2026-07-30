@@ -25,6 +25,7 @@ case "$CASE_ARG" in
   restart) CASE_ARG="03.restart" ;;
   full-restart) CASE_ARG="04.full-restart" ;;
   consensus) CASE_ARG="05.consensus" ;;
+  slow-sst) CASE_ARG="06.slow-sst-joiner" ;;
 esac
 
 cleanup() {

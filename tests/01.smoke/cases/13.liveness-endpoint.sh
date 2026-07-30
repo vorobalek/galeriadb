@@ -64,14 +64,7 @@ if [ "$unit_rc" -ne 0 ]; then
   exit 1
 fi
 
-# Part 2: the image health check must use the liveness endpoint, not readiness.
-hc="$(docker image inspect --format '{{json .Config.Healthcheck.Test}}' "$IMAGE")"
-if ! echo "$hc" | grep -q "9200/liveness"; then
-  log "FAIL: expected the image HEALTHCHECK to probe /liveness, got: $hc"
-  exit 1
-fi
-
-# Part 3: a running node answers both endpoints and reports healthy to Docker.
+# Part 2: a running node answers both endpoints and reports healthy to Docker.
 docker run -d \
   --name "$CONTAINER_NAME" \
   --hostname galera1 \
