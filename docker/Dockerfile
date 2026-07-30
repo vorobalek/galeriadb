@@ -44,6 +44,7 @@ RUN curl -sSfL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -
     && rm -rf /var/lib/apt/lists/*
 
 COPY galera.cnf.template /etc/mysql/conf.d/galera.cnf.template
+COPY common.sh /usr/local/bin/common.sh
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY entrypoint-lib.sh /usr/local/bin/entrypoint-lib.sh
 COPY entrypoint.d/ /usr/local/bin/entrypoint.d/
@@ -51,7 +52,7 @@ COPY galera-healthcheck.sh /usr/local/bin/galera-healthcheck.sh
 COPY galera-backup.sh /usr/local/bin/galera-backup.sh
 COPY galera-clone.sh /usr/local/bin/galera-clone.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/entrypoint-lib.sh /usr/local/bin/entrypoint.d/*.sh /usr/local/bin/galera-healthcheck.sh /usr/local/bin/galera-backup.sh /usr/local/bin/galera-clone.sh \
+RUN chmod +x /usr/local/bin/common.sh /usr/local/bin/entrypoint.sh /usr/local/bin/entrypoint-lib.sh /usr/local/bin/entrypoint.d/*.sh /usr/local/bin/galera-healthcheck.sh /usr/local/bin/galera-backup.sh /usr/local/bin/galera-clone.sh \
     && chown -R mysql:mysql /etc/mysql /var/lib/mysql /var/run/mysqld 2>/dev/null || true \
     && mkdir -p /var/run/mysqld && chown mysql:mysql /var/run/mysqld
 
@@ -59,7 +60,9 @@ EXPOSE 3306 4567 4568 4444 9200
 
 VOLUME /var/lib/mysql
 
+# Liveness, not readiness: a joiner receiving a state transfer is not ready to
+# serve, and restarting it there aborts the transfer. Load balancers use GET /.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -sf http://127.0.0.1:9200/ || exit 1
+  CMD curl -sf http://127.0.0.1:9200/liveness || exit 1
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

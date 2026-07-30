@@ -26,7 +26,7 @@ lint-dockerfile:
 lint-shell:
 	@echo "--- shellcheck ---"
 	@command -v shellcheck >/dev/null 2>&1 || (echo "shellcheck not found; install from https://www.shellcheck.net/" && exit 1)
-	@for f in $(SH_FILES); do echo "Linting $$f"; shellcheck "$$f" || exit 1; done
+	@for f in $(SH_FILES); do echo "Linting $$f"; shellcheck -x -P docker/ "$$f" || exit 1; done
 
 lint-shfmt:
 	@echo "--- shfmt check ---"
