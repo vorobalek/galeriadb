@@ -1,0 +1,17 @@
+#!/bin/bash
+# Test stand-in installed in place of the real rsync SST script (which is moved
+# aside to wsrep_sst_rsync.real). It delays the joiner side so the state transfer
+# lasts longer than the entrypoint readiness timeout and the container health
+# check grace period, then hands over to the real script, which performs the
+# actual transfer. The delay stands in for a large dataset or a slow link.
+log_slow_sst() { echo "[slow-sst] $*" >>/tmp/slow-sst.log 2>/dev/null || true; }
+
+log_slow_sst "invoked: $*"
+case " $* " in
+  *joiner*)
+    log_slow_sst "delaying joiner transfer by ${FAKE_SST_DELAY:-150}s"
+    sleep "${FAKE_SST_DELAY:-150}"
+    log_slow_sst "delay done, starting the real transfer"
+    ;;
+esac
+exec /usr/bin/wsrep_sst_rsync.real "$@"
